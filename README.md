@@ -10,7 +10,7 @@ Burn two NFTs. An AI fuses them into one. Remint throws the current child away �
 
 **Live: https://fuse-ethglobaltokyo.vercel.app**
 
-**Demo (60s): [docs/fuse-ethglobaltokyo.mp4](docs/fuse-ethglobaltokyo.mp4)**
+**Demo (60s): https://fuse-ethglobaltokyo.vercel.app/demo.mp4**
 
 > MetaMask shows a "deceptive site" warning on this URL. It is a Blockaid false positive:
 > `*.vercel.app` is a shared free-hosting domain that phishing kits abuse heavily, so a new
@@ -192,8 +192,9 @@ Exactly one result is ever on screen.
 
 ## Demo video
 
-[docs/fuse-ethglobaltokyo.mp4](docs/fuse-ethglobaltokyo.mp4) — 60 seconds, recorded against a local
-build so MetaMask's `*.vercel.app` warning does not get in the way.
+[fuse-ethglobaltokyo.vercel.app/demo.mp4](https://fuse-ethglobaltokyo.vercel.app/demo.mp4)
+(source: [web/public/demo.mp4](web/public/demo.mp4)) — 60 seconds, no audio, recorded against a
+local build so MetaMask's `*.vercel.app` warning does not get in the way.
 
 It runs the whole path end to end: connect, switch to Base Sepolia, pick #16 Tamago Nigiri and
 #6 Pearl Draco, approve, fuse, watch the generation, see the result, then Remint it behind the burn

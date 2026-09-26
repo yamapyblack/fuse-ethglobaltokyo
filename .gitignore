@@ -3,3 +3,5 @@ node_modules/
 .env
 .env.local
 
+# 撮って出しの動画。配信用は web/public/demo.mp4（圧縮済み）
+docs/*.mp4
