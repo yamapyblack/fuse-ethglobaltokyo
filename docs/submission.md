@@ -52,20 +52,23 @@ What bit us: after a redeploy, requestIds restart at 1. A fresh fuse read the pr
 
 フォームにアップロードする画像。`docs/submission/` に置いてある。
 
-| 用途 | ファイル | サイズ |
+| 用途 | ファイル | 内容 |
 | --- | --- | --- |
-| Logo (512x512) | [web/src/app/icon.png](../web/src/app/icon.png) | 512x512 |
-| Cover image (16:9) | [submission/cover.png](submission/cover.png) | 1920x1080 |
-| Screenshot 1 | [submission/01-pick-two-parents.png](submission/01-pick-two-parents.png) | 親を2体選ぶ画面 |
-| Screenshot 2 | [submission/02-confirm-transaction.png](submission/02-confirm-transaction.png) | -#16 -#6 +#36 と 0.001 ETH が見える署名画面 |
-| Screenshot 3 | [submission/03-result.png](submission/03-result.png) | 生成された子 #36 |
-| Screenshot 4 | [submission/04-remint-warning.png](submission/04-remint-warning.png) | burnの確認ダイアログ |
-| Screenshot 5 | [submission/05-generating.png](submission/05-generating.png) | 生成中。BaseScanのtxリンクと残Remint回数 |
-| Screenshot 6 | [submission/06-rerolled-result.png](submission/06-rerolled-result.png) | 同じ親から出た別の子 #37 |
+| Logo | [web/src/app/icon.png](../web/src/app/icon.png) | 512x512 |
+| Cover | [submission/cover.png](submission/cover.png) | 1920x1080。#16 + #6 → #36 |
+| Screenshot 1 | [01-pick-two-parents.png](submission/01-pick-two-parents.png) | 親を2体選ぶ画面。生き物と寿司が並ぶ |
+| Screenshot 2 | [02-confirm-transaction.png](submission/02-confirm-transaction.png) | 署名画面。-#16 / -#6 / +#36 / 0.001 ETH |
+| Screenshot 3 | [03-generating.png](submission/03-generating.png) | 生成中。BaseScanのtxリンク付き |
+| Screenshot 4 | [04-result.png](submission/04-result.png) | 生成された子 #36 |
+| Screenshot 5 | [05-remint-warning.png](submission/05-remint-warning.png) | burnの確認ダイアログ |
+| Screenshot 6 | [06-rerolled-result.png](submission/06-rerolled-result.png) | 同じ親から出た別の子 #37 |
 
-スクリーンショットはデモ動画の実フレームから切り出した（グリッドとRemintの
-確認ダイアログはウォレット接続が必要で、静止画として撮り直せないため）。
-ブラウザのクロームとmacOSのメニューバーは除いてページ本文だけにしてある。
+どの画面も上部に「親2体 → 子」の行が入るように切り出してある。これが無いと
+結果画像だけ見せられても何をしたのか伝わらない。
 
-3と6を並べると、同じ親 #16 x #6 から違う子が出ていることが分かる。Remintが
-何なのかを言葉なしで示せるので、この2枚は隣に並べて出すとよい。
+**4と6は隣に並べること。** 同じ親 #16 x #6 から違う子が出ていることが2枚で
+分かり、Remintが何なのかを言葉なしに示せる。
+
+スクリーンショットはデモ動画の実フレームから切り出した。グリッドとRemintの
+確認ダイアログはウォレット接続が必要で静止画として撮り直せないため。ブラウザの
+クロームとmacOSのメニューバーは除き、ページ本文だけに揃えてある。
