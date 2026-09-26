@@ -12,7 +12,7 @@ export type ChildInfo = {
   requestId: bigint;
   seed: bigint;
   prevChildTokenId: bigint;
-  rerollCount: number;
+  remintCount: number;
   /// 0:None 1:Pending 2:Ready 3:Burned
   state: number;
 };

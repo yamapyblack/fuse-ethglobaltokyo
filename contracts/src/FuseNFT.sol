@@ -10,7 +10,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 /// @notice 初期素材と配合で生まれた子を同じコレクションに収めるERC-721。
 ///         mint / burn / tokenURI設定は Fuse コントラクトだけが呼べる。
 contract FuseNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
-    /// @notice fuse/reroll を実行するコントラクト。一度だけ設定できる。
+    /// @notice fuse/remint を実行するコントラクト。一度だけ設定できる。
     address public fuseContract;
 
     uint256 private _nextTokenId = 1;
@@ -49,7 +49,7 @@ contract FuseNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         _safeMint(to, tokenId);
     }
 
-    /// @notice Reroll で現在の子を焼く。
+    /// @notice Remint で現在の子を焼く。
     function burnChild(uint256 tokenId) external onlyFuse {
         _burn(tokenId);
     }

@@ -84,12 +84,12 @@ async function ensureMetadata(tokenId: bigint, info: ChildInfo, imageUrl: string
     name: `Fuse #${tokenId}`,
     description:
       `#${info.parentA} と #${info.parentB} を配合して生まれた1体。` +
-      `親2体はプールへ永久ロックされ、この子はRerollで焼き直せます。`,
+      `親2体はプールへ永久ロックされ、この子はRemintで焼き直せます。`,
     image: imageUrl,
     attributes: [
       { trait_type: "Parent A", value: `#${info.parentA}` },
       { trait_type: "Parent B", value: `#${info.parentB}` },
-      { trait_type: "Reroll Count", value: Number(info.rerollCount) },
+      { trait_type: "Remint Count", value: Number(info.remintCount) },
       { trait_type: "Dominance", value: traits.dominance.label },
       { trait_type: "Accent", value: traits.accent.label },
       { trait_type: "Charm", value: traits.charm.label },
@@ -101,7 +101,7 @@ async function ensureMetadata(tokenId: bigint, info: ChildInfo, imageUrl: string
   return putJson(keys.childMetadata(tokenId), metadata);
 }
 
-/// 親画像をR2にスナップショットしておく。Rerollは必ずここから読むので、
+/// 親画像をR2にスナップショットしておく。Remintは必ずここから読むので、
 /// 何度焼き直しても同じ2枚が素材になる。
 async function snapshotParent(parentTokenId: bigint): Promise<Buffer> {
   const key = keys.parentSnapshot(parentTokenId);

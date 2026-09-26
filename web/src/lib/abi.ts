@@ -87,7 +87,7 @@ export const fuseAbi = [
             "internalType": "uint256"
           },
           {
-            "name": "rerollCount",
+            "name": "remintCount",
             "type": "uint32",
             "internalType": "uint32"
           },
@@ -215,14 +215,7 @@ export const fuseAbi = [
   },
   {
     "type": "function",
-    "name": "renounceOwnership",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "reroll",
+    "name": "remint",
     "inputs": [
       {
         "name": "tokenId",
@@ -243,6 +236,13 @@ export const fuseAbi = [
       }
     ],
     "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "renounceOwnership",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -404,7 +404,7 @@ export const fuseAbi = [
   },
   {
     "type": "event",
-    "name": "RerollRequested",
+    "name": "RemintRequested",
     "inputs": [
       {
         "name": "requestId",
@@ -449,7 +449,7 @@ export const fuseAbi = [
         "internalType": "uint256"
       },
       {
-        "name": "rerollCount",
+        "name": "remintCount",
         "type": "uint32",
         "indexed": false,
         "internalType": "uint32"

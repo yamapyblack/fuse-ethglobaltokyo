@@ -27,7 +27,7 @@ export async function GET(req: Request) {
         tokenId: tokenId.toString(),
         chainState: GEN_STATE[info.state] ?? "Unknown",
         requestId: info.requestId.toString(),
-        rerollCount: Number(info.rerollCount),
+        remintCount: Number(info.remintCount),
         prevChildTokenId: info.prevChildTokenId.toString(),
         seed: `0x${info.seed.toString(16)}`,
         parents: [

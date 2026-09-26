@@ -7,13 +7,13 @@ import {FuseNFT} from "./FuseNFT.sol";
 import {FusePool} from "./FusePool.sol";
 
 /// @title Fuse
-/// @notice 親2体を消費して子1体を生む。子はRerollで焼き直せる。画像生成はオフチェーン。
+/// @notice 親2体を消費して子1体を生む。子はRemintで焼き直せる。画像生成はオフチェーン。
 contract Fuse is Ownable, ReentrancyGuard {
     /// @notice 子NFTの生成状態。
     /// - None:    そもそも子ではない（初期素材）
-    /// - Pending: mint済み・画像生成待ち。この間はReroll不可
+    /// - Pending: mint済み・画像生成待ち。この間はRemint不可
     /// - Ready:   tokenURI確定済み
-    /// - Burned:  Rerollで焼かれた
+    /// - Burned:  Remintで焼かれた
     enum GenState {
         None,
         Pending,
@@ -28,7 +28,7 @@ contract Fuse is Ownable, ReentrancyGuard {
         uint256 requestId;
         uint256 seed;
         uint256 prevChildTokenId;
-        uint32 rerollCount;
+        uint32 remintCount;
         GenState state;
     }
 
@@ -66,7 +66,7 @@ contract Fuse is Ownable, ReentrancyGuard {
         uint256 parentB,
         uint256 seed
     );
-    event RerollRequested(
+    event RemintRequested(
         uint256 indexed requestId,
         uint256 indexed childTokenId,
         address indexed owner,
@@ -74,7 +74,7 @@ contract Fuse is Ownable, ReentrancyGuard {
         uint256 parentA,
         uint256 parentB,
         uint256 seed,
-        uint32 rerollCount
+        uint32 remintCount
     );
     event MetadataFinalized(uint256 indexed requestId, uint256 indexed childTokenId, string tokenURI);
     event MetadataSignerSet(address metadataSigner);
@@ -114,7 +114,7 @@ contract Fuse is Ownable, ReentrancyGuard {
             requestId: requestId,
             seed: _seed(requestId, childTokenId),
             prevChildTokenId: 0,
-            rerollCount: 0,
+            remintCount: 0,
             state: GenState.Pending
         });
         tokenIdOfRequest[requestId] = childTokenId;
@@ -124,7 +124,7 @@ contract Fuse is Ownable, ReentrancyGuard {
 
     /// @notice 今の子を焼いて、別tokenIdの子を新しく生む。親は再投入しない。
     /// @dev 素材として使われた子はプール所有になっているので、所有者チェックで自然に弾かれる。
-    function reroll(uint256 tokenId) external payable nonReentrant returns (uint256 newTokenId, uint256 requestId) {
+    function remint(uint256 tokenId) external payable nonReentrant returns (uint256 newTokenId, uint256 requestId) {
         if (msg.value != FEE) revert IncorrectFee();
 
         ChildInfo storage prev = _children[tokenId];
@@ -135,7 +135,7 @@ contract Fuse is Ownable, ReentrancyGuard {
 
         uint256 parentA = prev.parentA;
         uint256 parentB = prev.parentB;
-        uint32 rerollCount = prev.rerollCount + 1;
+        uint32 remintCount = prev.remintCount + 1;
         prev.state = GenState.Burned;
 
         nft.burnChild(tokenId);
@@ -149,12 +149,12 @@ contract Fuse is Ownable, ReentrancyGuard {
             requestId: requestId,
             seed: _seed(requestId, newTokenId),
             prevChildTokenId: tokenId,
-            rerollCount: rerollCount,
+            remintCount: remintCount,
             state: GenState.Pending
         });
         tokenIdOfRequest[requestId] = newTokenId;
 
-        emit RerollRequested(
+        emit RemintRequested(
             requestId,
             newTokenId,
             msg.sender,
@@ -162,7 +162,7 @@ contract Fuse is Ownable, ReentrancyGuard {
             parentA,
             parentB,
             _children[newTokenId].seed,
-            rerollCount
+            remintCount
         );
     }
 

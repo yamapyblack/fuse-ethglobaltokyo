@@ -1,6 +1,6 @@
 # Fuse
 
-2体のNFTを消費して、AIが合成した1体を生み出す。Rerollは今の子NFTを捨てる、後戻りできないガチャ。
+2体のNFTを消費して、AIが合成した1体を生み出す。Remintは今の子NFTを捨てる、後戻りできないガチャ。
 
 - チェーン: Base Sepolia (84532)
 - ストレージ: Cloudflare R2
@@ -17,7 +17,7 @@
 | FusePool | [`0x70ae089e5a45BAd2cdB3b3f42a4bD2c509c375DF`](https://sepolia.basescan.org/address/0x70ae089e5a45BAd2cdB3b3f42a4bD2c509c375DF) |
 | Fuse | [`0x926b31D4BA670e2AAAF14962A34d157c7fFCC222`](https://sepolia.basescan.org/address/0x926b31D4BA670e2AAAF14962A34d157c7fFCC222) |
 
-初期素材6体をmint済み。動作確認で #1 と #2 を配合して子 #7 を作り、Rerollで #8 に焼き直したため、
+初期素材6体をmint済み。動作確認で #1 と #2 を配合して子 #7 を作り、Remintで #8 に焼き直したため、
 **残りの素材は #3 #4 #5 #6 の4体**（＝あと2回配合できる）。
 
 `web/.env.local` に以下を入れること。
@@ -40,13 +40,13 @@ web/         Next.js (App Router)。画面2枚 + バックエンドAPI
 | --- | --- |
 | `FuseNFT` | 初期素材と子を同居させるERC-721。mint/burn/tokenURI設定は `Fuse` だけが呼べる |
 | `FusePool` | 親の永久保管先。`onERC721Received` しか実装していないので、入ったNFTは誰も動かせない |
-| `Fuse` | `fuse()` / `reroll()` / `finalizeMetadata()`。料金・所有権・親2体が別個体であることを検証する |
+| `Fuse` | `fuse()` / `remint()` / `finalizeMetadata()`。料金・所有権・親2体が別個体であることを検証する |
 
 権限は3つに分かれている。
 
 - **owner**（デプロイ鍵）: 初期素材のmint、手数料ETHの引き出し、metadataSignerの差し替え
 - **metadataSigner**（バックエンド鍵）: `finalizeMetadata` のみ。mintもburnも出金もできない
-- **誰でも**: `fuse` / `reroll`（0.001 ETH）
+- **誰でも**: `fuse` / `remint`（0.001 ETH）
 
 ### 生成フロー
 
@@ -163,7 +163,7 @@ Vercelにデプロイする場合は `web/` をルートに指定し、`.env.exa
 ## 画面
 
 1. `/` — 所有NFTから親2体を選び、承認 → fuse。承認は `setApprovalForAll` なので初回の1txだけ
-2. `/result/[tokenId]` — 生成状態・結果1体・Reroll。Reroll前に burn の確認ダイアログを出す
+2. `/result/[tokenId]` — 生成状態・結果1体・Remint。Remint前に burn の確認ダイアログを出す
 
 新旧比較・過去候補の選択・元に戻す機能は意図的に作っていない。画面に出る結果は常に1体。
 
@@ -175,13 +175,13 @@ Vercelにデプロイする場合は `web/` をルートに指定し、`.env.exa
 2. 承認（`setApprovalForAll`、初回のみ1tx）
 3. Fuse（0.001 ETH）
 4. 生成中 → 結果1体（**待ち時間をカットした旨をテロップで出す**）
-5. Rerollボタン → 「burnされ、元に戻せません」の確認
+5. Remintボタン → 「burnされ、元に戻せません」の確認
 6. 新しい結果に置き換わる
 
 ## 対象外
 
 - **子NFTを親にして再Fuse**: コントラクト上は可能（親の条件を絞っていない）が、
-  UI・デモとしては想定していない。素材にした子はプール所有になるので、その子のRerollは
+  UI・デモとしては想定していない。素材にした子はプール所有になるので、その子のRemintは
   所有者チェックで自然に弾かれる
 - 外部NFTの一般対応、売買、対戦、能力値、レア度、SNS連携、独自通貨
 - IPFS（R2のみ）

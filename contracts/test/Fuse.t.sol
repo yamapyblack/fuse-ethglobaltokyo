@@ -69,7 +69,7 @@ contract FuseTest is Test {
         assertEq(info.parentB, 2);
         assertEq(info.requestId, requestId);
         assertEq(info.prevChildTokenId, 0);
-        assertEq(info.rerollCount, 0);
+        assertEq(info.remintCount, 0);
         assertTrue(info.state == Fuse.GenState.Pending, "pending until metadata is set");
         assertTrue(info.seed != 0, "seed derived from block info + requestId");
     }
@@ -187,26 +187,26 @@ contract FuseTest is Test {
         assertEq(fuse.childInfo(childId).requestId, requestId, "requestId unchanged");
     }
 
-    // --- ⑤ Reroll ---
+    // --- ⑤ Remint ---
 
-    function test_reroll_burnsOldMintsNewAndKeepsParents() public {
+    function test_remint_burnsOldMintsNewAndKeepsParents() public {
         (uint256 childId,) = _fuse(alice, 1, 2);
         _finalize(childId, "https://cdn.example/child/7.json");
 
         vm.prank(alice);
-        (uint256 newChildId, uint256 newRequestId) = fuse.reroll{value: FEE}(childId);
+        (uint256 newChildId, uint256 newRequestId) = fuse.remint{value: FEE}(childId);
 
         vm.expectRevert(abi.encodeWithSelector(IERC721Errors.ERC721NonexistentToken.selector, childId));
         nft.ownerOf(childId);
         assertEq(nft.ownerOf(newChildId), alice);
         assertTrue(newChildId != childId, "new tokenId");
-        assertEq(address(fuse).balance, 2 * FEE, "reroll is charged too");
+        assertEq(address(fuse).balance, 2 * FEE, "remint is charged too");
 
         Fuse.ChildInfo memory info = fuse.childInfo(newChildId);
         assertEq(info.parentA, 1, "original parents carried over");
         assertEq(info.parentB, 2);
         assertEq(info.prevChildTokenId, childId);
-        assertEq(info.rerollCount, 1);
+        assertEq(info.remintCount, 1);
         assertEq(info.requestId, newRequestId);
         assertTrue(info.state == Fuse.GenState.Pending);
         assertTrue(fuse.childInfo(childId).state == Fuse.GenState.Burned);
@@ -215,65 +215,65 @@ contract FuseTest is Test {
         assertEq(nft.balanceOf(address(pool)), 2);
     }
 
-    function test_reroll_twiceIncrementsCount() public {
+    function test_remint_twiceIncrementsCount() public {
         (uint256 c1,) = _fuse(alice, 1, 2);
         _finalize(c1, "u1");
         vm.prank(alice);
-        (uint256 c2,) = fuse.reroll{value: FEE}(c1);
+        (uint256 c2,) = fuse.remint{value: FEE}(c1);
         _finalize(c2, "u2");
         vm.prank(alice);
-        (uint256 c3,) = fuse.reroll{value: FEE}(c2);
+        (uint256 c3,) = fuse.remint{value: FEE}(c2);
 
         Fuse.ChildInfo memory info = fuse.childInfo(c3);
-        assertEq(info.rerollCount, 2);
+        assertEq(info.remintCount, 2);
         assertEq(info.prevChildTokenId, c2);
         assertEq(info.parentA, 1);
         assertEq(info.parentB, 2);
     }
 
-    /// 生成中はReroll不可
-    function test_reroll_revertsWhilePending() public {
+    /// 生成中はRemint不可
+    function test_remint_revertsWhilePending() public {
         (uint256 childId,) = _fuse(alice, 1, 2);
         vm.prank(alice);
         vm.expectRevert(Fuse.GenerationInProgress.selector);
-        fuse.reroll{value: FEE}(childId);
+        fuse.remint{value: FEE}(childId);
     }
 
-    /// 子NFTのみReroll可能。初期素材は不可
-    function test_reroll_revertsForMaterial() public {
+    /// 子NFTのみRemint可能。初期素材は不可
+    function test_remint_revertsForMaterial() public {
         vm.prank(alice);
         vm.expectRevert(Fuse.NotChild.selector);
-        fuse.reroll{value: FEE}(1);
+        fuse.remint{value: FEE}(1);
     }
 
-    function test_reroll_revertsForNonOwner() public {
+    function test_remint_revertsForNonOwner() public {
         (uint256 childId,) = _fuse(alice, 1, 2);
         _finalize(childId, "u1");
         vm.prank(bob);
         vm.expectRevert(Fuse.NotChildOwner.selector);
-        fuse.reroll{value: FEE}(childId);
+        fuse.remint{value: FEE}(childId);
     }
 
-    function test_reroll_revertsOnWrongFee() public {
+    function test_remint_revertsOnWrongFee() public {
         (uint256 childId,) = _fuse(alice, 1, 2);
         _finalize(childId, "u1");
         vm.prank(alice);
         vm.expectRevert(Fuse.IncorrectFee.selector);
-        fuse.reroll{value: 0}(childId);
+        fuse.remint{value: 0}(childId);
     }
 
-    function test_reroll_revertsForAlreadyBurnedChild() public {
+    function test_remint_revertsForAlreadyBurnedChild() public {
         (uint256 childId,) = _fuse(alice, 1, 2);
         _finalize(childId, "u1");
         vm.prank(alice);
-        fuse.reroll{value: FEE}(childId);
+        fuse.remint{value: FEE}(childId);
         vm.prank(alice);
         vm.expectRevert(Fuse.AlreadyBurned.selector);
-        fuse.reroll{value: FEE}(childId);
+        fuse.remint{value: FEE}(childId);
     }
 
-    /// 子を素材に使うとプール所有になり、Reroll権は所有者チェックで自然に消える
-    function test_childUsedAsParent_losesRerollRight() public {
+    /// 子を素材に使うとプール所有になり、Remint権は所有者チェックで自然に消える
+    function test_childUsedAsParent_losesRemintRight() public {
         (uint256 childId,) = _fuse(alice, 1, 2);
         _finalize(childId, "u1");
 
@@ -283,7 +283,7 @@ contract FuseTest is Test {
 
         vm.prank(alice);
         vm.expectRevert(Fuse.NotChildOwner.selector);
-        fuse.reroll{value: FEE}(childId);
+        fuse.remint{value: FEE}(childId);
     }
 
     // --- 運用 ---

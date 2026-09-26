@@ -14,7 +14,7 @@ type Status = {
   tokenId: string;
   chainState: "None" | "Pending" | "Ready" | "Burned" | "Unknown";
   requestId: string;
-  rerollCount: number;
+  remintCount: number;
   seed: string;
   parents: { tokenId: string; image: string | null }[];
   tokenUri: string | null;
@@ -36,7 +36,7 @@ export function ResultView({ tokenId }: { tokenId: string }) {
   const [noneStreak, setNoneStreak] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
-  const [rerolling, setRerolling] = useState(false);
+  const [reminting, setReminting] = useState(false);
   const lastKick = useRef(0);
 
   const kick = useCallback(async (force = false) => {
@@ -81,26 +81,26 @@ export function ResultView({ tokenId }: { tokenId: string }) {
     };
   }, [tokenId, kick]);
 
-  async function handleReroll() {
+  async function handleRemint() {
     setConfirming(false);
-    setRerolling(true);
+    setReminting(true);
     setError(null);
     try {
       const hash = await writeContract(wagmiConfig, {
         address: FUSE_ADDRESS,
         abi: fuseAbi,
-        functionName: "reroll",
+        functionName: "remint",
         args: [BigInt(tokenId)],
         value: FEE_WEI,
       });
       const receipt = await waitForTransactionReceipt(wagmiConfig, { hash });
-      const [log] = parseEventLogs({ abi: fuseAbi, eventName: "RerollRequested", logs: receipt.logs });
-      if (!log) throw new Error("RerollRequested イベントが見つかりませんでした");
+      const [log] = parseEventLogs({ abi: fuseAbi, eventName: "RemintRequested", logs: receipt.logs });
+      if (!log) throw new Error("RemintRequested イベントが見つかりませんでした");
       router.push(`/result/${log.args.childTokenId}`);
     } catch (e) {
       setError(toMessage(e));
     } finally {
-      setRerolling(false);
+      setReminting(false);
     }
   }
 
@@ -137,7 +137,7 @@ export function ResultView({ tokenId }: { tokenId: string }) {
     return (
       <div className="card center">
         <h1>子NFTではありません</h1>
-        <p className="note">#{tokenId} は配合で生まれたNFTではないので、Rerollできません。</p>
+        <p className="note">#{tokenId} は配合で生まれたNFTではないので、Remintできません。</p>
         <Link href="/">もどる</Link>
       </div>
     );
@@ -147,7 +147,7 @@ export function ResultView({ tokenId }: { tokenId: string }) {
     return (
       <div className="card center">
         <div style={{ fontSize: 40 }}>🔥</div>
-        <h1>このNFTはRerollで焼かれました</h1>
+        <h1>このNFTはRemintで焼かれました</h1>
         <p className="note">#{tokenId} はもう存在しません。新しい子NFTをご確認ください。</p>
         <Link href="/">もどる</Link>
       </div>
@@ -221,8 +221,8 @@ export function ResultView({ tokenId }: { tokenId: string }) {
           <span>#{status.tokenId}</span>
         </div>
         <div>
-          <span>Reroll回数</span>
-          <span>{status.rerollCount}</span>
+          <span>Remint回数</span>
+          <span>{status.remintCount}</span>
         </div>
         <div>
           <span>seed</span>
@@ -254,18 +254,18 @@ export function ResultView({ tokenId }: { tokenId: string }) {
         </Link>
         <button
           className="danger"
-          disabled={generating || rerolling || !isConnected}
+          disabled={generating || reminting || !isConnected}
           onClick={() => setConfirming(true)}
         >
-          {rerolling ? "Reroll中…" : "Reroll (0.001 ETH)"}
+          {reminting ? "Remint中…" : "Remint (0.001 ETH)"}
         </button>
       </div>
-      {generating ? <p className="note">生成が終わるまでRerollはできません。</p> : null}
+      {generating ? <p className="note">生成が終わるまでRemintはできません。</p> : null}
 
       {confirming ? (
         <div className="modal-backdrop" onClick={() => setConfirming(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h1 style={{ fontSize: 20 }}>本当にRerollしますか？</h1>
+            <h1 style={{ fontSize: 20 }}>本当にRemintしますか？</h1>
             <div className="warn">
               現在のNFT #{status.tokenId} は<strong>burnされ、元に戻せません</strong>。
               <br />
@@ -278,8 +278,8 @@ export function ResultView({ tokenId }: { tokenId: string }) {
               <button className="ghost" onClick={() => setConfirming(false)}>
                 やめる
               </button>
-              <button className="danger" onClick={handleReroll}>
-                burnしてReroll
+              <button className="danger" onClick={handleRemint}>
+                burnしてRemint
               </button>
             </div>
           </div>
