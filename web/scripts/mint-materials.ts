@@ -1,7 +1,10 @@
 /// gen-materials.ts が作ったメタデータURLで初期素材をmintする。
-/// mint済みのものは materials.json に tokenId が入るのでスキップされる。
+///
+/// 何がmint済みかはローカルのJSONではなく**チェーンを走査して**判断する。
+/// パブリックRPCは直前のtxを反映していない値を返すことがあるので、
+/// nonceは最初に1回だけ取ってローカルで進め、tokenIdはTransferイベントから読む。
 import { readFile, writeFile } from "node:fs/promises";
-import { createPublicClient, createWalletClient, http } from "viem";
+import { createPublicClient, createWalletClient, http, parseEventLogs } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
 import { required } from "./env";
@@ -27,30 +30,58 @@ async function main() {
   const wallet = createWalletClient({ account, chain: baseSepolia, transport: http(rpc) });
 
   const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as Manifest;
+  const save = () => writeFile(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
 
-  for (const material of manifest) {
-    if (material.tokenId) {
-      console.log(`skip #${material.index} ${material.name} (token ${material.tokenId})`);
-      continue;
-    }
+  // --- 既存トークンを走査して metadataUrl → tokenId を復元する ---
+  const nextTokenId = await publicClient.readContract({
+    address: nftAddress,
+    abi: fuseNftAbi,
+    functionName: "nextTokenId",
+  });
 
-    const nextTokenId = await publicClient.readContract({
-      address: nftAddress,
-      abi: fuseNftAbi,
-      functionName: "nextTokenId",
-    });
+  for (const m of manifest) delete m.tokenId;
 
-    console.log(`minting ${material.name} → ${recipient}…`);
+  for (let id = 1n; id < nextTokenId; id++) {
+    const uri = await publicClient
+      .readContract({ address: nftAddress, abi: fuseNftAbi, functionName: "tokenURI", args: [id] })
+      .catch(() => "");
+    const hit = manifest.find((m) => m.metadataUrl === uri);
+    if (hit) hit.tokenId = id.toString();
+  }
+  await save();
+
+  const minted = manifest.filter((m) => m.tokenId);
+  console.log(`チェーン上の既存素材: ${minted.length} / ${manifest.length}`);
+  for (const m of minted) console.log(`  #${m.tokenId} ${m.name}`);
+
+  const todo = manifest.filter((m) => !m.tokenId);
+  if (todo.length === 0) {
+    console.log("\nすべてmint済み。");
+    return;
+  }
+  console.log("");
+
+  // --- 足りないぶんをmint。nonceはローカルで進める ---
+  let nonce = await publicClient.getTransactionCount({ address: account.address, blockTag: "pending" });
+
+  for (const material of todo) {
+    console.log(`minting ${material.name} → ${recipient} (nonce ${nonce})…`);
     const hash = await wallet.writeContract({
       address: nftAddress,
       abi: fuseNftAbi,
       functionName: "mintMaterial",
       args: [recipient, material.metadataUrl],
+      nonce: nonce++,
     });
-    await publicClient.waitForTransactionReceipt({ hash });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    if (receipt.status !== "success") throw new Error(`mint reverted: ${hash}`);
 
-    material.tokenId = nextTokenId.toString();
-    await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+    // tokenIdは推測せず、実際に発行されたTransferイベントから読む
+    const [transfer] = parseEventLogs({ abi: fuseNftAbi, eventName: "Transfer", logs: receipt.logs });
+    if (!transfer) throw new Error(`Transfer イベントが見つかりません: ${hash}`);
+
+    material.tokenId = transfer.args.tokenId.toString();
+    await save();
     console.log(`  token #${material.tokenId}  ${hash}`);
   }
 

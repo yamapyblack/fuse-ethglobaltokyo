@@ -24,6 +24,8 @@ export async function generateFusedImage(
     prompt,
     size: "1024x1024",
     quality: "medium",
+    // 既定(auto)だと背景が透過で返ることがあり、初期素材の不透過クリーム地と揃わない
+    background: "opaque",
     n: 1,
   });
 

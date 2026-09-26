@@ -50,6 +50,15 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error(`\n✗ ${e instanceof Error ? e.message : e}`);
+  const msg = e instanceof Error ? e.message : String(e);
+  console.error(`\n✗ ${msg}`);
+  if (/Access Denied|Forbidden|InvalidAccessKeyId|SignatureDoesNotMatch/i.test(msg)) {
+    console.error(
+      `\n  よくある原因:\n` +
+        `  - R2_BUCKET が実際のバケット名と違う（今の値: ${process.env.R2_BUCKET}）\n` +
+        `  - APIトークンのスコープがそのバケットを含んでいない\n` +
+        `  - 権限が Object Write のみ。Object Read & Write が必要`,
+    );
+  }
   process.exit(1);
 });

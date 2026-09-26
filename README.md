@@ -9,6 +9,24 @@
 
 要件は [docs/fuse-requirements.md](docs/fuse-requirements.md)。
 
+## デプロイ済み (Base Sepolia)
+
+| コントラクト | アドレス |
+| --- | --- |
+| FuseNFT | [`0x0d32356ae050406DD2b33C6CdB14B2A7867f06cA`](https://sepolia.basescan.org/address/0x0d32356ae050406DD2b33C6CdB14B2A7867f06cA) |
+| FusePool | [`0x70ae089e5a45BAd2cdB3b3f42a4bD2c509c375DF`](https://sepolia.basescan.org/address/0x70ae089e5a45BAd2cdB3b3f42a4bD2c509c375DF) |
+| Fuse | [`0x926b31D4BA670e2AAAF14962A34d157c7fFCC222`](https://sepolia.basescan.org/address/0x926b31D4BA670e2AAAF14962A34d157c7fFCC222) |
+
+初期素材6体をmint済み。動作確認で #1 と #2 を配合して子 #7 を作り、Rerollで #8 に焼き直したため、
+**残りの素材は #3 #4 #5 #6 の4体**（＝あと2回配合できる）。
+
+`web/.env.local` に以下を入れること。
+
+```
+NEXT_PUBLIC_FUSE_ADDRESS=0x926b31D4BA670e2AAAF14962A34d157c7fFCC222
+NEXT_PUBLIC_FUSE_NFT_ADDRESS=0x0d32356ae050406DD2b33C6CdB14B2A7867f06cA
+```
+
 ## 構成
 
 ```

@@ -25,11 +25,15 @@ type Status = {
 const POLL_MS = 4000;
 /// 生成の再キックはこの間隔まで。バックエンド側にもロックがあるので連打しても二重生成しない。
 const KICK_INTERVAL_MS = 25_000;
+/// パブリックRPCはtx直後にまだ古い状態を返すことがある。Fuse直後に「子ではない」と
+/// 誤判定しないよう、この回数連続で None を見るまでは確認中として扱う。
+const NONE_TOLERANCE = 4;
 
 export function ResultView({ tokenId }: { tokenId: string }) {
   const router = useRouter();
   const { isConnected } = useAccount();
   const [status, setStatus] = useState<Status | null>(null);
+  const [noneStreak, setNoneStreak] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [rerolling, setRerolling] = useState(false);
@@ -62,6 +66,7 @@ export function ResultView({ tokenId }: { tokenId: string }) {
           return;
         }
         setStatus(data);
+        setNoneStreak((n) => (data.chainState === "None" ? n + 1 : 0));
         if (data.chainState === "Pending") void kick();
       } catch (e) {
         if (alive) setError(e instanceof Error ? e.message : String(e));
@@ -114,6 +119,16 @@ export function ResultView({ tokenId }: { tokenId: string }) {
       <div className="card center">
         <div className="spinner" />
         <p className="note">状態を確認中…</p>
+      </div>
+    );
+  }
+
+  // txが取り込まれた直後はRPCがまだ古い状態を返すことがあるので、少し待ってから判定する
+  if (status.chainState === "None" && noneStreak < NONE_TOLERANCE) {
+    return (
+      <div className="card center">
+        <div className="spinner" />
+        <p className="note">チェーンの状態を確認中…</p>
       </div>
     );
   }
