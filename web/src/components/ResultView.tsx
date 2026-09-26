@@ -39,14 +39,14 @@ export function ResultView({ tokenId }: { tokenId: string }) {
   const [rerolling, setRerolling] = useState(false);
   const lastKick = useRef(0);
 
-  const kick = useCallback(async () => {
-    if (Date.now() - lastKick.current < KICK_INTERVAL_MS) return;
+  const kick = useCallback(async (force = false) => {
+    if (!force && Date.now() - lastKick.current < KICK_INTERVAL_MS) return;
     lastKick.current = Date.now();
     try {
       await fetch("/api/generate", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ tokenId }),
+        body: JSON.stringify({ tokenId, force }),
       });
     } catch {
       // ポーリングが次の周回で拾うので、ここでは握りつぶす
@@ -193,13 +193,7 @@ export function ResultView({ tokenId }: { tokenId: string }) {
               <br />
               追加の課金なしで再試行できます。
               <div style={{ marginTop: 10 }}>
-                <button
-                  className="ghost"
-                  onClick={() => {
-                    lastKick.current = 0;
-                    void kick();
-                  }}
-                >
+                <button className="ghost" onClick={() => void kick(true)}>
                   もう一度試す
                 </button>
               </div>

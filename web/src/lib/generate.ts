@@ -18,7 +18,7 @@ const BURNED = 3;
 
 /// 子NFT1体ぶんの画像生成を進める。何度呼ばれても安全で、
 /// すでに終わっている工程はスキップする（= 生成失敗時の再試行が追加課金を生まない）。
-export async function runGeneration(tokenId: bigint): Promise<GenerateResult> {
+export async function runGeneration(tokenId: bigint, force = false): Promise<GenerateResult> {
   const info = await readChildInfo(tokenId);
 
   // オンチェーンの状態が唯一の入場券。0.001 ETHを払ってPendingになったものだけ生成する。
@@ -29,7 +29,7 @@ export async function runGeneration(tokenId: bigint): Promise<GenerateResult> {
   }
   if (info.state !== PENDING) return { status: "not_child" };
 
-  const lock = await claimLock(info.requestId, tokenId);
+  const lock = await claimLock(info.requestId, tokenId, force);
   if (!lock.claimed) {
     const s = lock.state;
     if (!s) return { status: "generating", attempts: 0 };

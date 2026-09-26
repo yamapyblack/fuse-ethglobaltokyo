@@ -8,16 +8,18 @@ export const maxDuration = 300;
 /// 呼び出し側の言い分は信用せず、オンチェーンの Pending 状態だけを根拠に生成する。
 export async function POST(req: Request) {
   let tokenId: bigint;
+  let force = false;
   try {
-    const body = (await req.json()) as { tokenId?: string | number };
+    const body = (await req.json()) as { tokenId?: string | number; force?: boolean };
     if (body.tokenId === undefined) throw new Error("tokenId is required");
     tokenId = BigInt(body.tokenId);
+    force = body.force === true;
   } catch {
     return Response.json({ error: "invalid tokenId" }, { status: 400 });
   }
 
   try {
-    const result = await runGeneration(tokenId);
+    const result = await runGeneration(tokenId, force);
     const status = result.status === "not_child" ? 400 : 200;
     return Response.json(result, { status, headers: { "cache-control": "no-store" } });
   } catch (e) {

@@ -2,11 +2,31 @@ import OpenAI, { toFile } from "openai";
 
 const MODEL = process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1";
 
-let cached: OpenAI | undefined;
+let cached: { client: OpenAI; apiKey: string } | undefined;
 
 function client() {
-  if (!cached) cached = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  return cached;
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
+  // 鍵が差し替わったら作り直す。キャッシュが古い鍵を握ったままになるのを防ぐ
+  if (!cached || cached.apiKey !== apiKey) cached = { client: new OpenAI({ apiKey }), apiKey };
+  return cached.client;
+}
+
+/// 401/403 は「シェルで export された鍵が .env.local より優先されていた」が定番なので、
+/// どの鍵で叩いたかを添えて投げ直す。Next も dotenv も既存の process.env を上書きしない。
+async function withKeyHint<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (e) {
+    const status = (e as { status?: number }).status;
+    if (status !== 401 && status !== 403) throw e;
+    const key = process.env.OPENAI_API_KEY ?? "";
+    const suffix = key ? `…${key.slice(-4)} (長さ ${key.length})` : "(未設定)";
+    throw new Error(
+      `${e instanceof Error ? e.message : String(e)} / 使用した鍵: ${suffix}。` +
+        `シェルで OPENAI_API_KEY が export されていると .env.local より優先されます`,
+    );
+  }
 }
 
 /// 親2枚を同時に渡して合成画像を1枚作る。返り値はPNGのBuffer。
@@ -18,29 +38,33 @@ export async function generateFusedImage(
     parents.map((buf, i) => toFile(buf, `parent-${i}.png`, { type: "image/png" })),
   );
 
-  const res = await client().images.edit({
-    model: MODEL,
-    image: images,
-    prompt,
-    size: "1024x1024",
-    quality: "medium",
-    // 既定(auto)だと背景が透過で返ることがあり、初期素材の不透過クリーム地と揃わない
-    background: "opaque",
-    n: 1,
-  });
+  const res = await withKeyHint(() =>
+    client().images.edit({
+      model: MODEL,
+      image: images,
+      prompt,
+      size: "1024x1024",
+      quality: "medium",
+      // 既定(auto)だと背景が透過で返ることがあり、初期素材の不透過クリーム地と揃わない
+      background: "opaque",
+      n: 1,
+    }),
+  );
 
   return decodeFirstImage(res);
 }
 
 /// 初期素材の生成。親画像が無いので generate 側を使う。
 export async function generateImage(prompt: string): Promise<Buffer> {
-  const res = await client().images.generate({
-    model: MODEL,
-    prompt,
-    size: "1024x1024",
-    quality: "medium",
-    n: 1,
-  });
+  const res = await withKeyHint(() =>
+    client().images.generate({
+      model: MODEL,
+      prompt,
+      size: "1024x1024",
+      quality: "medium",
+      n: 1,
+    }),
+  );
   return decodeFirstImage(res);
 }
 

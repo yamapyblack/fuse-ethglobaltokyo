@@ -33,9 +33,14 @@ export async function saveState(state: RequestState): Promise<void> {
 
 /// 生成ロックを取る。取れたら RequestState、取れなかったら null。
 /// 初回は条件付き書き込みなので、同時に叩かれても1つしか通らない。
+///
+/// `force` は画面の「もう一度試す」から来る明示的な再試行。試行回数の上限は
+/// 自動リトライの暴走を止めるためのもので、原因を直した人間の操作まで塞ぐと
+/// 詰みになるため、上限だけを超える（実行中のロックは奪わない）。
 export async function claimLock(
   requestId: bigint,
   tokenId: bigint,
+  force = false,
 ): Promise<{ claimed: true; state: RequestState } | { claimed: false; state: RequestState | null }> {
   const now = Date.now();
   const fresh: RequestState = {
@@ -58,14 +63,14 @@ export async function claimLock(
   if (existing.status === "done" || lockIsFresh) {
     return { claimed: false, state: existing };
   }
-  if (existing.attempts >= MAX_ATTEMPTS) {
+  if (existing.attempts >= MAX_ATTEMPTS && !force) {
     return { claimed: false, state: existing };
   }
 
   const retried: RequestState = {
     ...existing,
     status: "generating",
-    attempts: existing.attempts + 1,
+    attempts: force ? 1 : existing.attempts + 1,
     lockedAt: now,
     updatedAt: now,
     error: undefined,
