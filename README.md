@@ -10,6 +10,8 @@ Burn two NFTs. An AI fuses them into one. Remint throws the current child away �
 
 **Live: https://fuse-ethglobaltokyo.vercel.app**
 
+**Demo (60s): [docs/fuse-ethglobaltokyo.mp4](docs/fuse-ethglobaltokyo.mp4)**
+
 > MetaMask shows a "deceptive site" warning on this URL. It is a Blockaid false positive:
 > `*.vercel.app` is a shared free-hosting domain that phishing kits abuse heavily, so a new
 > subdomain asking to connect a wallet gets flagged by pattern alone. The contracts and the
@@ -188,16 +190,16 @@ All on-screen text is English. While a mint is in flight the screen links to the
 There is deliberately no side-by-side comparison, no history of past candidates, and no undo.
 Exactly one result is ever on screen.
 
-## Demo video (60–90s)
+## Demo video
 
-Record this path:
+[docs/fuse-ethglobaltokyo.mp4](docs/fuse-ethglobaltokyo.mp4) — 60 seconds, recorded against a local
+build so MetaMask's `*.vercel.app` warning does not get in the way.
 
-1. Pick two parents from the starter grid
-2. Approve (`setApprovalForAll`, first time only)
-3. Fuse (0.001 ETH)
-4. Generating -> the result (**caption that the wait was trimmed**)
-5. Remint button -> the "this will be burned and cannot be recovered" confirmation
-6. The new result replaces it
+It runs the whole path end to end: connect, switch to Base Sepolia, pick #16 Tamago Nigiri and
+#6 Pearl Draco, approve, fuse, watch the generation, see the result, then Remint it behind the burn
+confirmation and land on a different child from the same two parents. The generation wait is cut.
+
+The two children make the point: same parents, visibly different results. That is what Remint is.
 
 ## Out of scope
 
