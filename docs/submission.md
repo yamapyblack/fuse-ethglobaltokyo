@@ -72,3 +72,35 @@ What bit us: after a redeploy, requestIds restart at 1. A fresh fuse read the pr
 スクリーンショットはデモ動画の実フレームから切り出した。グリッドとRemintの
 確認ダイアログはウォレット接続が必要で静止画として撮り直せないため。ブラウザの
 クロームとmacOSのメニューバーは除き、ページ本文だけに揃えてある。
+
+## Tech Stack
+
+選択式。実際に使っているものだけ。
+
+| 質問 | 選ぶもの |
+| --- | --- |
+| Ethereum developer tools | Foundry / viem / wagmi / OpenZeppelin / Etherscan (BaseScan) / MetaMask |
+| Blockchain networks | Base |
+| Programming languages | Solidity / TypeScript |
+| Web frameworks | Next.js / React |
+| Databases | **None** |
+| Design tools | **None** |
+| Other (自由入力) | OpenAI gpt-image-1 / Cloudflare R2 / Vercel / ERC-721 / sharp |
+
+- RainbowKit と ethers.js は使っていない。接続は wagmi の injected コネクタのみ。Hardhat も未使用
+- **DBは意図的に使っていない。** 進行状況はR2のオブジェクトに持たせ、条件付き書き込みをロック代わりにしている
+- Design tools も無し。UIは手書きCSSで、絵はすべてAI生成
+
+### Describe how AI tools were used
+
+```
+AI is used in two separate ways here.
+
+As the product: each fused child is generated at mint time. Both parent PNGs go to OpenAI's image edit endpoint with a prompt built from a seed derived on-chain from block data and the requestId. Nothing is pre-rendered — the artwork does not exist until someone pays to fuse, and reminting the same two parents gives a different child because the seed changes with it.
+
+As the build tool: the implementation was written with Claude Code (Opus) — the three Solidity contracts and their 26 Foundry tests, the Next.js frontend and API routes, the generation pipeline with its idempotent retry logic, and the scripts that generate and mint the starter set. I set the scope and the product decisions, signed the wallet transactions and recorded the demo. Claude Code wrote and debugged the code, deployed and verified the contracts on BaseScan, and diagnosed the failures we hit: a stale-RPC nonce collision that silently dropped one mint, and an R2 key collision after a redeploy that made a fresh fuse read the previous deployment's "done" record and never generate anything.
+```
+
+素材画像の生成には触れていない。絵を作っただけで仕組みとしては見どころがなく、
+mint時に生成が走ることの方が本質のため。
+
