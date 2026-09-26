@@ -17,7 +17,8 @@
 | FusePool | [`0x1513AB76ac18D46C540D3f6a7df50d58F513c218`](https://sepolia.basescan.org/address/0x1513AB76ac18D46C540D3f6a7df50d58F513c218) |
 | Fuse | [`0xcAF686Abd6cF393cf4c6B8baB7D34adc79e4f3e0`](https://sepolia.basescan.org/address/0xcAF686Abd6cF393cf4c6B8baB7D34adc79e4f3e0) |
 
-初期素材6体 (#1〜#6) をmint済みで、まだ1体も消費していない。
+初期素材26体をmint済み (#1〜#6, #10〜#29)。うち #1〜#4 は配合でプールへロック済みなので、
+**残りの素材は22体**。#7 と #9 は配合で生まれた子NFT（#9 は #8 をRemintしたもの）。
 
 `web/.env.local` に以下を入れること。
 
