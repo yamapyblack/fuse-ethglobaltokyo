@@ -51,7 +51,7 @@ web/         Next.js (App Router)。画面2枚 + バックエンドAPI
 ### 生成フロー
 
 ```
-[ブラウザ] approve×2 → fuse() → 子NFTがPendingでmintされる
+[ブラウザ] setApprovalForAll(初回のみ) → fuse() → 子NFTがPendingでmintされる
         ↓ tx確定後に POST /api/generate { tokenId }
 [サーバー] childInfo(tokenId) をチェーンから読む
         → Pending でなければ何もしない（これが唯一の入場券）
@@ -162,7 +162,7 @@ Vercelにデプロイする場合は `web/` をルートに指定し、`.env.exa
 
 ## 画面
 
-1. `/` — 所有NFTから親2体を選び、approve → fuse
+1. `/` — 所有NFTから親2体を選び、承認 → fuse。承認は `setApprovalForAll` なので初回の1txだけ
 2. `/result/[tokenId]` — 生成状態・結果1体・Reroll。Reroll前に burn の確認ダイアログを出す
 
 新旧比較・過去候補の選択・元に戻す機能は意図的に作っていない。画面に出る結果は常に1体。
@@ -172,7 +172,7 @@ Vercelにデプロイする場合は `web/` をルートに指定し、`.env.exa
 収録する流れ:
 
 1. 初期素材の一覧から親2体を選ぶ
-2. approve ×2
+2. 承認（`setApprovalForAll`、初回のみ1tx）
 3. Fuse（0.001 ETH）
 4. 生成中 → 結果1体（**待ち時間をカットした旨をテロップで出す**）
 5. Rerollボタン → 「burnされ、元に戻せません」の確認

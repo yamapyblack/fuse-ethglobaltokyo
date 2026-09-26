@@ -34,26 +34,25 @@ export default function SelectPage() {
     });
   }
 
-  /// 承認 → 配合 を1本の流れで通す。承認済みのtokenはスキップする。
+  /// 承認 → 配合 を1本の流れで通す。
+  /// 承認は setApprovalForAll なので初回の1txだけ。2回目以降の配合では省略される。
   async function handleFuse() {
     if (selected.length !== 2 || !address) return;
     setError(null);
     try {
-      for (const [i, tokenId] of selected.entries()) {
-        const approved = await readContract(wagmiConfig, {
-          address: FUSE_NFT_ADDRESS,
-          abi: fuseNftAbi,
-          functionName: "getApproved",
-          args: [tokenId],
-        });
-        if (approved.toLowerCase() === FUSE_ADDRESS.toLowerCase()) continue;
-
-        setStep({ label: `#${tokenId} を承認 (${i + 1}/2)` });
+      const approved = await readContract(wagmiConfig, {
+        address: FUSE_NFT_ADDRESS,
+        abi: fuseNftAbi,
+        functionName: "isApprovedForAll",
+        args: [address, FUSE_ADDRESS],
+      });
+      if (!approved) {
+        setStep({ label: "承認中…" });
         const hash = await writeContract(wagmiConfig, {
           address: FUSE_NFT_ADDRESS,
           abi: fuseNftAbi,
-          functionName: "approve",
-          args: [FUSE_ADDRESS, tokenId],
+          functionName: "setApprovalForAll",
+          args: [FUSE_ADDRESS, true],
         });
         await waitForTransactionReceipt(wagmiConfig, { hash });
       }

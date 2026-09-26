@@ -89,7 +89,7 @@ contract Fuse is Ownable, ReentrancyGuard {
     }
 
     /// @notice 親2体をプールへ永久ロックし、子1体をmintする。画像はまだ無い。
-    /// @dev 呼び出し前に親2体をこのコントラクトへapproveしておく必要がある。
+    /// @dev 呼び出し前に、親2体への approve か setApprovalForAll でこのコントラクトを承認しておく必要がある。
     function fuse(uint256 parentA, uint256 parentB)
         external
         payable

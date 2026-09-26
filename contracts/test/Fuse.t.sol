@@ -104,6 +104,24 @@ contract FuseTest is Test {
         fuse.fuse{value: FEE}(1, 2);
     }
 
+    /// 画面は setApprovalForAll を使う。個別approveでなくても配合できること
+    function test_fuse_worksWithOperatorApproval() public {
+        vm.startPrank(alice);
+        nft.setApprovalForAll(address(fuse), true);
+        (uint256 childId,) = fuse.fuse{value: FEE}(1, 2);
+        vm.stopPrank();
+
+        assertEq(nft.ownerOf(1), address(pool));
+        assertEq(nft.ownerOf(2), address(pool));
+        assertEq(nft.ownerOf(childId), alice);
+
+        // 一度承認すれば2回目以降は承認なしで配合できる
+        vm.prank(alice);
+        (uint256 second,) = fuse.fuse{value: FEE}(3, 4);
+        assertEq(nft.ownerOf(second), alice);
+        assertEq(nft.balanceOf(address(pool)), 4);
+    }
+
     function test_fuse_revertsWithoutApproval() public {
         vm.prank(alice);
         vm.expectRevert(
