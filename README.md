@@ -1,96 +1,97 @@
 # Fuse
 
-2体のNFTを消費して、AIが合成した1体を生み出す。Remintは今の子NFTを捨てる、後戻りできないガチャ。
+Burn two NFTs. An AI fuses them into one. Remint throws the current child away — an irreversible gacha.
 
-- チェーン: Base Sepolia (84532)
-- ストレージ: Cloudflare R2
-- 画像生成: OpenAI 画像編集API（親2枚を同時入力して1枚合成）
-- ホスティング: Vercel
+- Chain: Base Sepolia (84532)
+- Storage: Cloudflare R2
+- Image generation: OpenAI image edit API (both parent images go in, one fused image comes out)
+- Hosting: Vercel
 
-要件は [docs/fuse-requirements.md](docs/fuse-requirements.md)。
+Requirements (Japanese): [docs/fuse-requirements.md](docs/fuse-requirements.md)
 
-## デプロイ済み (Base Sepolia)
+## Deployed (Base Sepolia)
 
-| コントラクト | アドレス |
+| Contract | Address |
 | --- | --- |
 | FuseNFT | [`0x96d0d610671b4240AcAC0F5B7De18f2f94749559`](https://sepolia.basescan.org/address/0x96d0d610671b4240AcAC0F5B7De18f2f94749559) |
 | FusePool | [`0x8E648661964bc1Fb82037EaDA2e712eC58907665`](https://sepolia.basescan.org/address/0x8E648661964bc1Fb82037EaDA2e712eC58907665) |
 | Fuse | [`0xFF9116784747986f8c5D2c10c63D6f9a681268a1`](https://sepolia.basescan.org/address/0xFF9116784747986f8c5D2c10c63D6f9a681268a1) |
 
-初期素材26体 (#1〜#26) をmint済みで、まだ1体も消費していない。
+26 starter creatures (#1–#26) are minted, none consumed yet.
 
-`web/.env.local` に以下を入れること。
+Put these in `web/.env.local`:
 
 ```
 NEXT_PUBLIC_FUSE_ADDRESS=0xFF9116784747986f8c5D2c10c63D6f9a681268a1
 NEXT_PUBLIC_FUSE_NFT_ADDRESS=0x96d0d610671b4240AcAC0F5B7De18f2f94749559
 ```
 
-## 構成
+## Layout
 
 ```
-contracts/   Foundry。FuseNFT / FusePool / Fuse
-web/         Next.js (App Router)。画面2枚 + バックエンドAPI
+contracts/   Foundry. FuseNFT / FusePool / Fuse
+web/         Next.js (App Router). Two screens + backend API
 ```
 
-### コントラクト3本
+### Three contracts
 
-| 名前 | 役割 |
+| Name | Role |
 | --- | --- |
-| `FuseNFT` | 初期素材と子を同居させるERC-721。mint/burn/tokenURI設定は `Fuse` だけが呼べる |
-| `FusePool` | 親の永久保管先。`onERC721Received` しか実装していないので、入ったNFTは誰も動かせない |
-| `Fuse` | `fuse()` / `remint()` / `finalizeMetadata()`。料金・所有権・親2体が別個体であることを検証する。Remintは1系統3回まで (`MAX_REMINTS`) |
+| `FuseNFT` | One ERC-721 holding both starter creatures and fused children. Only `Fuse` can mint, burn, or set a tokenURI |
+| `FusePool` | Where parents go to stay. It implements nothing but `onERC721Received`, so whatever lands there can never be moved again |
+| `Fuse` | `fuse()` / `remint()` / `finalizeMetadata()`. Checks the fee, ownership, and that the two parents are distinct. A child can be reminted at most 3 times (`MAX_REMINTS`) |
 
-権限は3つに分かれている。
+Three separate authorities:
 
-- **owner**（デプロイ鍵）: 初期素材のmint、手数料ETHの引き出し、metadataSignerの差し替え
-- **metadataSigner**（バックエンド鍵）: `finalizeMetadata` のみ。mintもburnも出金もできない
-- **誰でも**: `fuse` / `remint`（0.001 ETH）
+- **owner** (deploy key): mints starter creatures, withdraws collected ETH, rotates the metadata signer
+- **metadataSigner** (backend key): `finalizeMetadata` only. It cannot mint, burn, or withdraw
+- **anyone**: `fuse` / `remint` for 0.001 ETH
 
-### 生成フロー
+### Generation flow
 
 ```
-[ブラウザ] setApprovalForAll(初回のみ) → fuse() → 子NFTがPendingでmintされる
-        ↓ tx確定後に POST /api/generate { tokenId }
-[サーバー] childInfo(tokenId) をチェーンから読む
-        → Pending でなければ何もしない（これが唯一の入場券）
-        → R2に生成ロックを取る（条件付き書き込みなので同時実行でも1回だけ）
-        → 親画像をR2にスナップショット → OpenAIで合成 → 画像とJSONをR2へ
-        → finalizeMetadata(tokenId, url) を metadataSigner で送信
-[ブラウザ] GET /api/status?tokenId= を4秒おきにポーリングして結果を表示
+[browser] setApprovalForAll (first time only) -> fuse() -> child NFT is minted as Pending
+        | after the tx lands: POST /api/generate { tokenId }
+[server]  read childInfo(tokenId) from chain
+        -> do nothing unless it is Pending (this is the only ticket in)
+        -> take a generation lock in R2 (conditional write, so concurrent calls collapse to one)
+        -> snapshot both parent images to R2 -> fuse with OpenAI -> store image + JSON in R2
+        -> send finalizeMetadata(tokenId, url) as the metadata signer
+[browser] poll GET /api/status?tokenId= every 4s and render the result
 ```
 
-Vercelには常駐ワーカーが置けないため、イベント検知のポーリングワーカーではなく
-「画面が叩いてサーバーがチェーンで裏を取る」形にしている。呼び出し側の言い分は一切信用せず、
-0.001 ETHを払って `Pending` になったtokenIdだけが生成される。
+Vercel cannot host a long-running worker, so instead of a polling event listener the browser pokes
+the server and the server verifies the claim against the chain. Nothing the caller says is trusted:
+only a tokenId that someone paid 0.001 ETH to put into `Pending` will ever be generated.
 
-### 失敗しても追加課金にならない理由
+### Why a failed generation never costs extra
 
-`state/{requestId}.json` に試行回数と進捗を持たせ、工程ごとに「すでに済んでいるか」を見てから進む。
+`state/{requestId}.json` tracks attempts and progress, and every step checks whether it is already done.
 
-- 画像がR2にある → OpenAIを呼ばない
-- チェーンが既にReady → `finalizeMetadata` を送らない
-- ロックが新しいうちは何度叩いても即 `generating` を返す（古くなったロックは奪える）
-- 試行は5回で打ち止め。画面から手動で再試行できる
+- Image already in R2 -> OpenAI is not called
+- Chain already Ready -> `finalizeMetadata` is not sent
+- While the lock is fresh, repeated calls return `generating` immediately (a stale lock can be taken over)
+- Capped at 5 automatic attempts; the screen offers an explicit retry that bypasses the cap
 
-再mintも追加の支払いも発生しない。完成後のメタデータは `Pending` 以外を弾くので上書きできない。
+No re-mint, no second payment. Metadata cannot be overwritten either, since `finalizeMetadata`
+rejects anything that is not `Pending`.
 
-## セットアップ
+## Setup
 
-### 1. コントラクトのテスト
+### 1. Run the contract tests
 
 ```bash
 cd contracts && forge test
 ```
 
-### 2. R2バケットを作って公開する
+### 2. Create an R2 bucket and make it public
 
-Cloudflare R2でバケットを1つ作り、3つ設定する。
+Create one bucket in Cloudflare R2 and configure three things.
 
-1. **Public Development URL を Enable** — 発行される `https://pub-xxxxxxxx.r2.dev` が
-   `R2_PUBLIC_BASE_URL`。tokenURIがこのURLを指すので、HTTPSで誰でも読める必要がある
-2. **CORS Policy** — 選択画面はブラウザから直接メタデータJSONを `fetch` するので必須。
-   これが無いと所有NFTの画像が出ない（`<img>` での画像表示だけなら不要）
+1. **Enable the Public Development URL** — the resulting `https://pub-xxxxxxxx.r2.dev` is your
+   `R2_PUBLIC_BASE_URL`. tokenURIs point at it, so it has to be publicly readable over HTTPS.
+2. **CORS policy** — required, because the selection screen fetches metadata JSON directly from the
+   browser. Without it the owned NFTs render without images (plain `<img>` loading would be fine).
 
    ```json
    [
@@ -103,96 +104,101 @@ Cloudflare R2でバケットを1つ作り、3つ設定する。
    ]
    ```
 
-   公開読み取り専用なので `*` でよい。Vercelのプレビューデプロイは毎回URLが変わるため、
-   オリジンを固定すると逆に詰まる
-3. **R2 APIトークン** — R2 → `{} API` → Manage API tokens から作る。この導線なら
-   Access Key ID と Secret Access Key が表示される（汎用のAccount API tokens画面から作ると
-   Bearerトークンになり、S3クライアントでは使えない）。権限は **Object Read & Write**。
-   書き込みのみだと「生成済みならOpenAIを呼ばない」判定で使う HeadObject / GetObject が通らない
+   `*` is fine for a public read-only bucket. Pinning the origin actually gets in the way, since
+   Vercel preview deployments get a fresh URL every time.
+3. **R2 API token** — create it from R2 -> `{} API` -> Manage API tokens. That path shows you an
+   Access Key ID and a Secret Access Key. (Creating one from the generic Account API tokens screen
+   gives you a Bearer token, which an S3 client cannot use.) Permission must be
+   **Object Read & Write** — write-only breaks the HeadObject/GetObject checks that keep a retry
+   from calling OpenAI again.
 
-`R2_ACCOUNT_ID` はバケット詳細のS3 APIエンドポイント `https://<account_id>.r2.cloudflarestorage.com/...`
-のサブドメイン部分。
+`R2_ACCOUNT_ID` is the subdomain of the bucket's S3 API endpoint,
+`https://<account_id>.r2.cloudflarestorage.com/...`.
 
-### 3. 鍵を2つ用意する
+### 3. Prepare two keys
 
-デプロイ用とメタデータ確定用は分ける。どちらもBase SepoliaのテストETHを入れておく
-（[faucet](https://www.alchemy.com/faucets/base-sepolia)）。
+Keep the deploy key and the metadata key separate. Fund both with Base Sepolia test ETH
+([faucet](https://www.alchemy.com/faucets/base-sepolia)).
 
-### 4. デプロイ
+### 4. Deploy
 
 ```bash
 cd contracts
-cp .env.example .env   # DEPLOYER_PRIVATE_KEY と METADATA_SIGNER_ADDRESS を埋める
+cp .env.example .env   # fill in DEPLOYER_PRIVATE_KEY and METADATA_SIGNER_ADDRESS
 set -a && source .env && set +a
 forge script script/Deploy.s.sol:Deploy --rpc-url https://sepolia.base.org --broadcast
 ```
 
-アドレスは `contracts/deployments/84532.json` に書き出される。
-BaseScanで検証する場合は `--verify --etherscan-api-key $BASESCAN_API_KEY` を足す。
+Addresses are written to `contracts/deployments/84532.json`.
+Add `--verify --etherscan-api-key $BASESCAN_API_KEY` to verify on BaseScan.
 
-### 5. web/.env.local を作る
+### 5. Create web/.env.local
 
 ```bash
 cd web && cp .env.example .env.local
 ```
 
-デプロイしたアドレス、`METADATA_SIGNER_PRIVATE_KEY`、`OPENAI_API_KEY`、R2の値を埋める。
+Fill in the deployed addresses, `METADATA_SIGNER_PRIVATE_KEY`, `OPENAI_API_KEY`, and the R2 values.
 
-### 6. 初期素材を作ってmint
+### 6. Generate and mint the starter creatures
 
 ```bash
 cd web
 pnpm install
-pnpm check:r2         # 先にR2の疎通だけ確認する（OpenAIは呼ばない）
-pnpm gen:materials    # OpenAIで生成 → R2へ。2回目以降は既存をスキップ
-pnpm mint:materials   # mintMaterial。チェーンを走査してmint済みはスキップ
+pnpm check:r2         # verify R2 connectivity first (does not call OpenAI)
+pnpm gen:materials    # generate with OpenAI -> R2. Re-runs skip what already exists
+pnpm mint:materials   # mintMaterial. Scans the chain and skips what is already minted
 ```
 
-`MATERIAL_RECIPIENT` を設定すればデモ用ウォレット宛にmintできる（既定はデプロイ鍵のアドレス）。
+Set `MATERIAL_RECIPIENT` to mint to a demo wallet (defaults to the deploy key's address).
 
-### 7. 起動
+### 7. Run it
 
 ```bash
 pnpm dev
 ```
 
-Vercelにデプロイする場合は `web/` をルートに指定し、`.env.example` の変数を環境変数に入れる
-（`NEXT_PUBLIC_*` 以外はサーバー専用なのでブラウザには渡らない）。
+To deploy on Vercel, set `web/` as the root directory and add the variables from `.env.example`
+as environment variables. Everything except `NEXT_PUBLIC_*` stays server-side.
 
-## 画面
+## Screens
 
-1. `/` — 所有NFTから親2体を選び、承認 → fuse。承認は `setApprovalForAll` なので初回の1txだけ
-2. `/result/[tokenId]` — 生成状態・結果1体・Remint。Remint前に burn の確認ダイアログを出し、残り回数を表示する
+1. `/` — pick two parents from the wallet, approve, fuse. Approval is `setApprovalForAll`,
+   so it costs one transaction the first time and nothing after that
+2. `/result/[tokenId]` — generation status, the single result, and Remint. Remint is behind a
+   burn confirmation dialog and shows how many remints are left
 
-画面の文字はすべて英語。mint中はBaseScanのtxリンクを出す。
-2. `/result/[tokenId]` — 生成状態・結果1体・Remint。Remint前に burn の確認ダイアログを出す
+All on-screen text is English. While a mint is in flight the screen links to the transaction on BaseScan.
 
-新旧比較・過去候補の選択・元に戻す機能は意図的に作っていない。画面に出る結果は常に1体。
+There is deliberately no side-by-side comparison, no history of past candidates, and no undo.
+Exactly one result is ever on screen.
 
-## デモ動画（60〜90秒）
+## Demo video (60–90s)
 
-収録する流れ:
+Record this path:
 
-1. 初期素材の一覧から親2体を選ぶ
-2. 承認（`setApprovalForAll`、初回のみ1tx）
-3. Fuse（0.001 ETH）
-4. 生成中 → 結果1体（**待ち時間をカットした旨をテロップで出す**）
-5. Remintボタン → 「burnされ、元に戻せません」の確認
-6. 新しい結果に置き換わる
+1. Pick two parents from the starter grid
+2. Approve (`setApprovalForAll`, first time only)
+3. Fuse (0.001 ETH)
+4. Generating -> the result (**caption that the wait was trimmed**)
+5. Remint button -> the "this will be burned and cannot be recovered" confirmation
+6. The new result replaces it
 
-## 対象外
+## Out of scope
 
-- **子NFTを親にして再Fuse**: コントラクト上は可能（親の条件を絞っていない）が、
-  UI・デモとしては想定していない。素材にした子はプール所有になるので、その子のRemintは
-  所有者チェックで自然に弾かれる
-- 外部NFTの一般対応、売買、対戦、能力値、レア度、SNS連携、独自通貨
-- IPFS（R2のみ）
-- 完全な再現性・公平な乱数の保証（seedはブロック情報とrequestIdから算出する簡易版）
+- **Fusing a child again as a parent**: the contract allows it (parents are not restricted), but it
+  is not part of the UI or the demo. A child used as a parent moves to the pool, so its Remint is
+  naturally rejected by the ownership check
+- Arbitrary external NFT collections, trading, battles, stats, rarity, social integrations, a token
+- IPFS (R2 only)
+- Reproducibility or fair randomness — the seed is derived from block data plus the requestId
 
-## 既知の制約
+## Known limitations
 
-- **Vercel Hobbyプランは関数実行が60秒上限**。画像生成が30〜60秒かかるため、
-  タイムアウトすることがある。その場合も状態レコードから再開できる（追加課金なし）。
-  Proプランなら `maxDuration = 300` がそのまま効く
-- 画面を閉じたまま放置すると生成が始まらない。結果画面を開き直せば再開する
-- 画像生成モデルは `OPENAI_IMAGE_MODEL` で差し替え可（既定 `gpt-image-1`）
+- **Vercel's Hobby plan caps functions at 60s** while generation takes 30–60s, so it can time out.
+  The run resumes from the state record at no extra cost. On Pro, `maxDuration = 300` applies as written
+- Generation does not start while the page is closed. Reopening the result page resumes it
+- The image model is swappable via `OPENAI_IMAGE_MODEL` (default `gpt-image-1`)
+- If the deploy wallet is an EIP-7702 delegated smart account, `_safeMint` invokes
+  `onERC721Received` on it and gas estimates from the public RPC can fall short. The mint script
+  doubles its estimate; if a wallet transaction fails with "out of gas", raise the limit by hand
