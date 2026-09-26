@@ -3,6 +3,8 @@
 /// 何がmint済みかはローカルのJSONではなく**チェーンを走査して**判断する。
 /// パブリックRPCは直前のtxを反映していない値を返すことがあるので、
 /// nonceは最初に1回だけ取ってローカルで進め、tokenIdはTransferイベントから読む。
+/// ガスも同じ理由で古い状態を基に見積もられて足りなくなることがあるため、
+/// 見積もりを倍にして送る。未使用ぶんは課金されない。
 import { readFile, writeFile } from "node:fs/promises";
 import { createPublicClient, createWalletClient, http, parseEventLogs } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -66,12 +68,24 @@ async function main() {
 
   for (const material of todo) {
     console.log(`minting ${material.name} → ${recipient} (nonce ${nonce})…`);
+
+    const estimated = await publicClient
+      .estimateContractGas({
+        address: nftAddress,
+        abi: fuseNftAbi,
+        functionName: "mintMaterial",
+        args: [recipient, material.metadataUrl],
+        account,
+      })
+      .catch(() => 300_000n);
+
     const hash = await wallet.writeContract({
       address: nftAddress,
       abi: fuseNftAbi,
       functionName: "mintMaterial",
       args: [recipient, material.metadataUrl],
       nonce: nonce++,
+      gas: estimated * 2n,
     });
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
     if (receipt.status !== "success") throw new Error(`mint reverted: ${hash}`);

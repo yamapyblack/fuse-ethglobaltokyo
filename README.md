@@ -13,18 +13,17 @@
 
 | コントラクト | アドレス |
 | --- | --- |
-| FuseNFT | [`0xe151917D3cc0B93026Eaa0a1E868d5Dc0376b8F6`](https://sepolia.basescan.org/address/0xe151917D3cc0B93026Eaa0a1E868d5Dc0376b8F6) |
-| FusePool | [`0x1513AB76ac18D46C540D3f6a7df50d58F513c218`](https://sepolia.basescan.org/address/0x1513AB76ac18D46C540D3f6a7df50d58F513c218) |
-| Fuse | [`0xcAF686Abd6cF393cf4c6B8baB7D34adc79e4f3e0`](https://sepolia.basescan.org/address/0xcAF686Abd6cF393cf4c6B8baB7D34adc79e4f3e0) |
+| FuseNFT | [`0x96d0d610671b4240AcAC0F5B7De18f2f94749559`](https://sepolia.basescan.org/address/0x96d0d610671b4240AcAC0F5B7De18f2f94749559) |
+| FusePool | [`0x8E648661964bc1Fb82037EaDA2e712eC58907665`](https://sepolia.basescan.org/address/0x8E648661964bc1Fb82037EaDA2e712eC58907665) |
+| Fuse | [`0xFF9116784747986f8c5D2c10c63D6f9a681268a1`](https://sepolia.basescan.org/address/0xFF9116784747986f8c5D2c10c63D6f9a681268a1) |
 
-初期素材26体をmint済み (#1〜#6, #10〜#29)。うち #1〜#4 は配合でプールへロック済みなので、
-**残りの素材は22体**。#7 と #9 は配合で生まれた子NFT（#9 は #8 をRemintしたもの）。
+初期素材26体 (#1〜#26) をmint済みで、まだ1体も消費していない。
 
 `web/.env.local` に以下を入れること。
 
 ```
-NEXT_PUBLIC_FUSE_ADDRESS=0xcAF686Abd6cF393cf4c6B8baB7D34adc79e4f3e0
-NEXT_PUBLIC_FUSE_NFT_ADDRESS=0xe151917D3cc0B93026Eaa0a1E868d5Dc0376b8F6
+NEXT_PUBLIC_FUSE_ADDRESS=0xFF9116784747986f8c5D2c10c63D6f9a681268a1
+NEXT_PUBLIC_FUSE_NFT_ADDRESS=0x96d0d610671b4240AcAC0F5B7De18f2f94749559
 ```
 
 ## 構成
@@ -40,7 +39,7 @@ web/         Next.js (App Router)。画面2枚 + バックエンドAPI
 | --- | --- |
 | `FuseNFT` | 初期素材と子を同居させるERC-721。mint/burn/tokenURI設定は `Fuse` だけが呼べる |
 | `FusePool` | 親の永久保管先。`onERC721Received` しか実装していないので、入ったNFTは誰も動かせない |
-| `Fuse` | `fuse()` / `remint()` / `finalizeMetadata()`。料金・所有権・親2体が別個体であることを検証する |
+| `Fuse` | `fuse()` / `remint()` / `finalizeMetadata()`。料金・所有権・親2体が別個体であることを検証する。Remintは1系統3回まで (`MAX_REMINTS`) |
 
 権限は3つに分かれている。
 
@@ -163,6 +162,9 @@ Vercelにデプロイする場合は `web/` をルートに指定し、`.env.exa
 ## 画面
 
 1. `/` — 所有NFTから親2体を選び、承認 → fuse。承認は `setApprovalForAll` なので初回の1txだけ
+2. `/result/[tokenId]` — 生成状態・結果1体・Remint。Remint前に burn の確認ダイアログを出し、残り回数を表示する
+
+画面の文字はすべて英語。mint中はBaseScanのtxリンクを出す。
 2. `/result/[tokenId]` — 生成状態・結果1体・Remint。Remint前に burn の確認ダイアログを出す
 
 新旧比較・過去候補の選択・元に戻す機能は意図的に作っていない。画面に出る結果は常に1体。
