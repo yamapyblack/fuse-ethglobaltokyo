@@ -8,6 +8,13 @@ Burn two NFTs. An AI fuses them into one. Remint throws the current child away �
 - Starter set: 13 pastel creatures + 13 pastel sushi
 - Hosting: Vercel
 
+**Live: https://fuse-ethglobaltokyo.vercel.app**
+
+> MetaMask shows a "deceptive site" warning on this URL. It is a Blockaid false positive:
+> `*.vercel.app` is a shared free-hosting domain that phishing kits abuse heavily, so a new
+> subdomain asking to connect a wallet gets flagged by pattern alone. The contracts and the
+> source are all in this repo. To avoid the warning entirely, run it locally (see Setup).
+
 Requirements (Japanese): [docs/fuse-requirements.md](docs/fuse-requirements.md)
 
 ## Deployed (Base Sepolia)
@@ -18,7 +25,8 @@ Requirements (Japanese): [docs/fuse-requirements.md](docs/fuse-requirements.md)
 | FusePool | [`0x8E648661964bc1Fb82037EaDA2e712eC58907665`](https://sepolia.basescan.org/address/0x8E648661964bc1Fb82037EaDA2e712eC58907665) |
 | Fuse | [`0xFF9116784747986f8c5D2c10c63D6f9a681268a1`](https://sepolia.basescan.org/address/0xFF9116784747986f8c5D2c10c63D6f9a681268a1) |
 
-26 starter pieces (#1–#26) are minted, none consumed yet: **13 creatures (#1–#13) and 13 sushi (#14–#26)**.
+The starter set is 26 pieces (#1–#26): **13 creatures (#1–#13) and 13 sushi (#14–#26)**.
+Anything minted after #26 is a fused child.
 
 Half the set is sushi on purpose. Fusing two similar creatures produces something that could just be
 a third creature, so a demo viewer cannot tell a fusion happened. Creature × sushi makes it obvious
