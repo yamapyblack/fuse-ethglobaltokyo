@@ -47,3 +47,25 @@ Vercel can't run a worker, so there is no event listener: the browser pokes /api
 
 What bit us: after a redeploy, requestIds restart at 1. A fresh fuse read the previous deployment's state record, saw "done", and never generated anything. R2 keys are now namespaced by chain id and contract address.
 ```
+
+## Images
+
+フォームにアップロードする画像。`docs/submission/` に置いてある。
+
+| 用途 | ファイル | サイズ |
+| --- | --- | --- |
+| Logo (512x512) | [web/src/app/icon.png](../web/src/app/icon.png) | 512x512 |
+| Cover image (16:9) | [submission/cover.png](submission/cover.png) | 1920x1080 |
+| Screenshot 1 | [submission/01-pick-two-parents.png](submission/01-pick-two-parents.png) | 親を2体選ぶ画面 |
+| Screenshot 2 | [submission/02-confirm-transaction.png](submission/02-confirm-transaction.png) | -#16 -#6 +#36 と 0.001 ETH が見える署名画面 |
+| Screenshot 3 | [submission/03-result.png](submission/03-result.png) | 生成された子 #36 |
+| Screenshot 4 | [submission/04-remint-warning.png](submission/04-remint-warning.png) | burnの確認ダイアログ |
+| Screenshot 5 | [submission/05-generating.png](submission/05-generating.png) | 生成中。BaseScanのtxリンクと残Remint回数 |
+| Screenshot 6 | [submission/06-rerolled-result.png](submission/06-rerolled-result.png) | 同じ親から出た別の子 #37 |
+
+スクリーンショットはデモ動画の実フレームから切り出した（グリッドとRemintの
+確認ダイアログはウォレット接続が必要で、静止画として撮り直せないため）。
+ブラウザのクロームとmacOSのメニューバーは除いてページ本文だけにしてある。
+
+3と6を並べると、同じ親 #16 x #6 から違う子が出ていることが分かる。Remintが
+何なのかを言葉なしで示せるので、この2枚は隣に並べて出すとよい。
