@@ -59,8 +59,10 @@ export async function claimLock(
   const existing = await loadState(requestId);
   if (!existing) return { claimed: false, state: null };
 
+  // 呼ばれるのはチェーンがPendingのときだけ。"done" と食い違っていたら記録側が古いので、
+  // 打ち切らずに取り直す（各工程は済んでいればスキップされるので無駄打ちにならない）。
   const lockIsFresh = existing.status === "generating" && now - existing.lockedAt < LOCK_TTL_MS;
-  if (existing.status === "done" || lockIsFresh) {
+  if (lockIsFresh) {
     return { claimed: false, state: existing };
   }
   if (existing.attempts >= MAX_ATTEMPTS && !force) {
