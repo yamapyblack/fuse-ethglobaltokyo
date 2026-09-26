@@ -10,6 +10,22 @@ import { generateImage } from "../src/lib/openai";
 import { buildMaterialPrompt, MATERIALS } from "../src/lib/prompt";
 import { exists, publicUrl, put, putJson } from "../src/lib/r2";
 
+/// 既存キーを上書きしたいとき用。REGEN_MATERIALS=14-26 や 3,7 の形で指定する。
+/// mint済みのtokenURIは metadata/material-N.json を指したままなので、
+/// 同じキーに上書きすれば再mintせずに絵柄を差し替えられる。
+function parseRegen(spec: string): Set<number> {
+  const out = new Set<number>();
+  for (const part of spec.split(",").map((x) => x.trim()).filter(Boolean)) {
+    const range = part.match(/^(\d+)-(\d+)$/);
+    if (range) {
+      for (let i = Number(range[1]); i <= Number(range[2]); i++) out.add(i);
+    } else if (/^\d+$/.test(part)) {
+      out.add(Number(part));
+    }
+  }
+  return out;
+}
+
 type Manifest = {
   index: number;
   name: string;
@@ -36,6 +52,9 @@ async function main() {
   required("R2_BUCKET");
   required("R2_PUBLIC_BASE_URL");
 
+  const regen = parseRegen(process.env.REGEN_MATERIALS ?? "");
+  if (regen.size > 0) console.log(`強制再生成: ${[...regen].join(", ")}\n`);
+
   const manifest: Manifest = [];
   const failed: { index: number; name: string; error: string }[] = [];
 
@@ -45,12 +64,12 @@ async function main() {
     const metadataKey = keys.materialMetadata(index);
 
     try {
-      if (await withRetry("exists", () => exists(imageKey))) {
+      if (!regen.has(index) && (await withRetry("exists", () => exists(imageKey)))) {
         console.log(`skip #${index} ${material.name} (already on R2)`);
       } else {
-        console.log(`generating #${index} ${material.name}…`);
+        console.log(`generating #${index} ${material.name} [${material.kind}]…`);
         const image = await withRetry("generate", () =>
-          generateImage(buildMaterialPrompt(index, material.motif)),
+          generateImage(buildMaterialPrompt(index, material.motif, material.kind)),
         );
         // ここで落とすと生成しなおしになるので、保存は粘って通す
         await withRetry("upload", () => put(imageKey, image, "image/png"));
@@ -59,10 +78,13 @@ async function main() {
       const metadataUrl = await withRetry("metadata", () =>
         putJson(metadataKey, {
           name: material.name,
-          description: "A starter creature for Fuse. Pick two and fuse them into a brand-new one.",
+          description:
+            material.kind === "sushi"
+              ? "A starter sushi for Fuse. Pick two and fuse them into a brand-new one."
+              : "A starter creature for Fuse. Pick two and fuse them into a brand-new one.",
           image: publicUrl(imageKey),
           attributes: [
-            { trait_type: "Kind", value: "Material" },
+            { trait_type: "Kind", value: material.kind === "sushi" ? "Sushi" : "Creature" },
             { trait_type: "Material No", value: index },
           ],
         }),

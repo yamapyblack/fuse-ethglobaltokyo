@@ -5,6 +5,7 @@ Burn two NFTs. An AI fuses them into one. Remint throws the current child away �
 - Chain: Base Sepolia (84532)
 - Storage: Cloudflare R2
 - Image generation: OpenAI image edit API (both parent images go in, one fused image comes out)
+- Starter set: 13 pastel creatures + 13 pastel sushi
 - Hosting: Vercel
 
 Requirements (Japanese): [docs/fuse-requirements.md](docs/fuse-requirements.md)
@@ -17,7 +18,11 @@ Requirements (Japanese): [docs/fuse-requirements.md](docs/fuse-requirements.md)
 | FusePool | [`0x8E648661964bc1Fb82037EaDA2e712eC58907665`](https://sepolia.basescan.org/address/0x8E648661964bc1Fb82037EaDA2e712eC58907665) |
 | Fuse | [`0xFF9116784747986f8c5D2c10c63D6f9a681268a1`](https://sepolia.basescan.org/address/0xFF9116784747986f8c5D2c10c63D6f9a681268a1) |
 
-26 starter creatures (#1–#26) are minted, none consumed yet.
+26 starter pieces (#1–#26) are minted, none consumed yet: **13 creatures (#1–#13) and 13 sushi (#14–#26)**.
+
+Half the set is sushi on purpose. Fusing two similar creatures produces something that could just be
+a third creature, so a demo viewer cannot tell a fusion happened. Creature × sushi makes it obvious
+at a glance.
 
 Put these in `web/.env.local`:
 

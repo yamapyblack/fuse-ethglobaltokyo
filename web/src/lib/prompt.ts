@@ -1,15 +1,33 @@
-/// 画風は固定。seedで振れるのは配合条件だけにして、コレクションの見た目を揃える。
-const STYLE =
-  "Style: kawaii chibi mascot creature illustration, soft rounded shapes, thick gentle outlines, " +
-  "flat shading with light pastel gradients, pastel lavender and white palette, " +
-  "one single full-body character centered in frame, plain off-white background, " +
-  "sticker-like clean edges, no text, no watermark, no border, no collage, no split panels.";
+/// 描き方は全素材・全世代で固定。パレットだけ被写体に合わせて差し替える。
+/// 寿司まで薄紫にすると寿司に見えなくなるので、そこだけ分けている。
+const STYLE_BASE =
+  "Style: kawaii chibi mascot illustration, soft rounded shapes, thick gentle outlines, " +
+  "flat shading with light pastel gradients, one single subject centered in frame, " +
+  "plain off-white background, sticker-like clean edges, " +
+  "no text, no watermark, no border, no collage, no split panels.";
+
+const CREATURE_PALETTE = "Palette: pastel lavender and white.";
+
+/// 背景指定はプロンプトの最後に置く。パレットより前に書くと、寿司の暖色が
+/// 背景まで塗られて暗いグラデーションになった（13枚中7枚）。
+const BACKGROUND =
+  "The background must be one flat off-white tone (#FAF7F2), the same for every image in this set. " +
+  "No dark background, no coloured gradient, no vignette, no glow, no scene, no table surface.";
+
+const SUSHI_PALETTE =
+  "Palette: soft pastel food colours kept light and desaturated so it sits in the same set as " +
+  "the pastel creatures — cream white rice, muted salmon pink, pale coral red, soft dark seaweed green.";
+
+/// 子は親2体の色を受け継ぐ。生き物と寿司が混ざるので、被写体の種類は決め打ちしない。
+const CHILD_PALETTE = "Palette: pastel, blended from the colours of the two parents.";
 
 const FUSION =
-  "You are given two reference creature images: parent A and parent B. " +
-  "Design ONE brand-new creature that fuses both parents. " +
-  "Merge their silhouette, ear and horn shapes, color accents and body markings into a single coherent character " +
-  "that reads as a believable offspring of the two. Do not place the parents side by side.";
+  "You are given two reference images: parent A and parent B. " +
+  "Each parent is either a small creature or a piece of sushi. " +
+  "Design ONE brand-new character that fuses both parents into a single coherent design. " +
+  "Merge their silhouette, their distinctive parts (ears, horns, fins, rice base, seaweed wrap, toppings) " +
+  "and their colour accents so the result reads as one creature born from the two, " +
+  "not as two objects placed together. Do not place the parents side by side.";
 
 /// label はNFTのattributesに出す短い名前、text は画像生成に渡す指示。
 type Option = { label: string; text: string };
@@ -83,47 +101,56 @@ export function buildPrompt(seed: bigint): { prompt: string; traits: FusionTrait
   const prompt = [
     FUSION,
     `Fusion condition: ${traits.dominance.text}`,
-    `Give the new creature ${traits.accent.text}, ${traits.charm.text}, ${traits.expression.text}, ${traits.pose.text}.`,
-    STYLE,
+    `Give the new character ${traits.accent.text}, ${traits.charm.text}, ${traits.expression.text}, ${traits.pose.text}.`,
+    STYLE_BASE,
+    CHILD_PALETTE,
+    BACKGROUND,
   ].join("\n");
   return { prompt, traits };
 }
 
 /// 初期素材用。親がいないので単体で描かせる。
-export function buildMaterialPrompt(index: number, motif: string): string {
+export function buildMaterialPrompt(index: number, motif: string, kind: MaterialKind): string {
   return [
-    `Design creature #${index}: ${motif}.`,
-    "It is a mascot that will later be fused with other creatures, so keep the silhouette simple and readable.",
-    STYLE,
+    `Design subject #${index}: ${motif}.`,
+    "It will later be fused with another subject from this set, so keep the silhouette simple and readable.",
+    STYLE_BASE,
+    kind === "sushi" ? SUSHI_PALETTE : CREATURE_PALETTE,
+    BACKGROUND,
   ].join("\n");
 }
 
-/// 初期素材6体のモチーフ。画風は共通、シルエットだけ違えて配合の差が出るようにする。
-export const MATERIALS = [
-  { name: "Mochi Bun", motif: "a round fluffy bunny-like creature with long drooping ears" },
-  { name: "Ember Cat", motif: "a small cat-like creature with a curled flame-shaped tail" },
-  { name: "Puff Chick", motif: "a chubby bird-like creature with tiny stubby wings and a tuft crest" },
-  { name: "Leaf Slime", motif: "a soft slime-like creature with two little leaf sprouts on top" },
-  { name: "Fluff Fox", motif: "a pudgy fox-like creature with a big bushy tail and pointed ears" },
-  { name: "Pearl Draco", motif: "a tiny dragon-like creature with rounded horns and a pearl on its chest" },
-  { name: "Bubble Otter", motif: "a round otter-like creature with a shiny bubble balanced on its nose" },
-  { name: "Star Moth", motif: "a plump moth-like creature with rounded wings covered in star patterns" },
-  { name: "Snow Bear", motif: "a small bear-like creature with fluffy snow-tuft ears and a stubby tail" },
-  { name: "Coral Axolotl", motif: "an axolotl-like creature with frilly coral-shaped gills on both sides of its head" },
-  { name: "Pebble Turtle", motif: "a squat turtle-like creature with a smooth rounded shell covered in soft moss" },
-  { name: "Honey Bee", motif: "a chubby bee-like creature with tiny round wings and a striped fuzzy body" },
-  { name: "Cloud Sheep", motif: "a sheep-like creature whose fleece is shaped like a soft puffy cloud" },
-  { name: "Mush Frog", motif: "a round frog-like creature with a domed mushroom cap growing on its head" },
-  { name: "Ink Squid", motif: "a small squid-like creature with short curled tentacles and a pointed mantle" },
-  { name: "Candy Deer", motif: "a tiny fawn-like creature with swirled candy-stick antlers" },
-  { name: "Lantern Fish", motif: "a round fish-like creature with a glowing lantern bulb on a stalk above its head" },
-  { name: "Cactus Mouse", motif: "a mouse-like creature with a rounded cactus growing along its back" },
-  { name: "Prism Bat", motif: "a small bat-like creature with translucent prism wings and big round ears" },
-  { name: "Ribbon Snake", motif: "a coiled snake-like creature whose body is flat and soft like a ribbon" },
-  { name: "Acorn Squirrel", motif: "a squirrel-like creature with an acorn-shaped tail and round cheeks" },
-  { name: "Thunder Pup", motif: "a puppy-like creature with zigzag lightning-shaped ears" },
-  { name: "Peach Piglet", motif: "a piglet-like creature with a peach-shaped body and a tiny curled tail" },
-  { name: "Mirror Owl", motif: "an owl-like creature with oversized round mirror-like eyes and a flat face" },
-  { name: "Glacier Penguin", motif: "a penguin-like creature with an icy crystal crest on its head" },
-  { name: "Ember Lion", motif: "a lion cub-like creature with a soft flame-shaped mane" },
+/// 初期素材26体。生き物13 + 寿司13。
+/// 半分を寿司にしているのは、生き物どうしだと配合結果が「合体した」ように見えないため。
+/// 生き物×寿司なら一目で分かる。
+export type MaterialKind = "creature" | "sushi";
+
+export const MATERIALS: readonly { name: string; motif: string; kind: MaterialKind }[] = [
+  { kind: "creature", name: "Mochi Bun", motif: "a round fluffy bunny-like creature with long drooping ears" },
+  { kind: "creature", name: "Ember Cat", motif: "a small cat-like creature with a curled flame-shaped tail" },
+  { kind: "creature", name: "Puff Chick", motif: "a chubby bird-like creature with tiny stubby wings and a tuft crest" },
+  { kind: "creature", name: "Leaf Slime", motif: "a soft slime-like creature with two little leaf sprouts on top" },
+  { kind: "creature", name: "Fluff Fox", motif: "a pudgy fox-like creature with a big bushy tail and pointed ears" },
+  { kind: "creature", name: "Pearl Draco", motif: "a tiny dragon-like creature with rounded horns and a pearl on its chest" },
+  { kind: "creature", name: "Bubble Otter", motif: "a round otter-like creature with a shiny bubble balanced on its nose" },
+  { kind: "creature", name: "Star Moth", motif: "a plump moth-like creature with rounded wings covered in star patterns" },
+  { kind: "creature", name: "Snow Bear", motif: "a small bear-like creature with fluffy snow-tuft ears and a stubby tail" },
+  { kind: "creature", name: "Coral Axolotl", motif: "an axolotl-like creature with frilly coral-shaped gills on both sides of its head" },
+  { kind: "creature", name: "Pebble Turtle", motif: "a squat turtle-like creature with a smooth rounded shell covered in soft moss" },
+  { kind: "creature", name: "Honey Bee", motif: "a chubby bee-like creature with tiny round wings and a striped fuzzy body" },
+  { kind: "creature", name: "Cloud Sheep", motif: "a sheep-like creature whose fleece is shaped like a soft puffy cloud" },
+
+  { kind: "sushi", name: "Tuna Nigiri", motif: "a piece of tuna nigiri sushi, one slice of lean red tuna draped over a rounded pillow of rice" },
+  { kind: "sushi", name: "Salmon Nigiri", motif: "a piece of salmon nigiri sushi, a pale orange salmon slice with soft white marbling over a rice pillow" },
+  { kind: "sushi", name: "Tamago Nigiri", motif: "a piece of tamago nigiri sushi, a thick pale yellow sweet omelette block on rice, belted with a strip of dark seaweed" },
+  { kind: "sushi", name: "Ebi Nigiri", motif: "a piece of shrimp nigiri sushi, a butterflied pink and white prawn with a striped tail over rice" },
+  { kind: "sushi", name: "Tako Nigiri", motif: "a piece of octopus nigiri sushi, a scalloped pale purple octopus slice over rice" },
+  { kind: "sushi", name: "Ikura Gunkan", motif: "a gunkan-maki sushi cup wrapped in dark seaweed, heaped with glossy round orange salmon roe" },
+  { kind: "sushi", name: "Uni Gunkan", motif: "a gunkan-maki sushi cup wrapped in dark seaweed, filled with soft golden sea urchin lobes" },
+  { kind: "sushi", name: "Kappa Maki", motif: "a round cucumber maki roll seen end-on, a pale green cucumber core in white rice inside a dark seaweed ring" },
+  { kind: "sushi", name: "Tekka Maki", motif: "a round tuna maki roll seen end-on, a red tuna core in white rice inside a dark seaweed ring" },
+  { kind: "sushi", name: "California Roll", motif: "a round inside-out roll seen end-on, rice on the outside dotted with orange roe, avocado and crab inside" },
+  { kind: "sushi", name: "Inari Zushi", motif: "a piece of inari sushi, a plump golden-brown fried tofu pouch folded over rice" },
+  { kind: "sushi", name: "Temaki Cone", motif: "a hand-rolled temaki sushi cone of dark seaweed with rice and fillings peeking out of the wide top" },
+  { kind: "sushi", name: "Onigiri", motif: "a rounded triangular rice ball with a wide band of dark seaweed across its base" },
 ] as const;
