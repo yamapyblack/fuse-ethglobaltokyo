@@ -7,6 +7,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "check:r2": "tsx scripts/check-r2.ts",
+    "gen:icon": "tsx scripts/gen-icon.ts",
     "gen:materials": "tsx scripts/gen-materials.ts",
     "mint:materials": "tsx scripts/mint-materials.ts"
   },
@@ -25,6 +26,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "dotenv": "^18.0.4",
+    "sharp": "^0.35.4",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   },
