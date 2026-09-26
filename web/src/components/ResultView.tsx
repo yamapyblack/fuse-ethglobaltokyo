@@ -39,6 +39,8 @@ export function ResultView({ tokenId, fuseTx }: { tokenId: string; fuseTx: strin
   const [confirming, setConfirming] = useState(false);
   const [remintTx, setRemintTx] = useState<`0x${string}` | null>(null);
   const [reminting, setReminting] = useState(false);
+  /// Remintが通って新しい子のページへ移る途中。古いtokenIdはこの間にBurnedへ変わる。
+  const [leaving, setLeaving] = useState(false);
   const lastKick = useRef(0);
 
   const kick = useCallback(async (force = false) => {
@@ -56,6 +58,7 @@ export function ResultView({ tokenId, fuseTx }: { tokenId: string; fuseTx: strin
   }, [tokenId]);
 
   useEffect(() => {
+    if (leaving) return;
     let alive = true;
 
     async function tick() {
@@ -81,7 +84,7 @@ export function ResultView({ tokenId, fuseTx }: { tokenId: string; fuseTx: strin
       alive = false;
       clearInterval(timer);
     };
-  }, [tokenId, kick]);
+  }, [tokenId, kick, leaving]);
 
   async function handleRemint() {
     setConfirming(false);
@@ -100,6 +103,7 @@ export function ResultView({ tokenId, fuseTx }: { tokenId: string; fuseTx: strin
       const receipt = await waitForTransactionReceipt(wagmiConfig, { hash });
       const [log] = parseEventLogs({ abi: fuseAbi, eventName: "RemintRequested", logs: receipt.logs });
       if (!log) throw new Error("RemintRequested event not found in the receipt");
+      setLeaving(true);
       router.push(`/result/${log.args.childTokenId}?tx=${hash}`);
     } catch (e) {
       setError(toMessage(e));
@@ -148,6 +152,16 @@ export function ResultView({ tokenId, fuseTx }: { tokenId: string; fuseTx: strin
   }
 
   if (status.chainState === "Burned") {
+    // Remint直後は、新しい子のページへ移る前に古いtokenIdがBurnedになる。
+    // ここで焼失画面を出すと赤い画面が1〜2秒挟まって事故に見えるので抑える。
+    if (reminting || leaving) {
+      return (
+        <div className="card center">
+          <div className="spinner" />
+          <p className="note">Opening your new NFT…</p>
+        </div>
+      );
+    }
     return (
       <div className="card center">
         <div style={{ fontSize: 40 }}>🔥</div>
