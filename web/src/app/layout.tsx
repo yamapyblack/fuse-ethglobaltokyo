@@ -6,7 +6,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Fuse",
-  description: "Burn two NFTs. An AI fuses them into one.",
+  description: "Two NFTs go in and stay locked. An AI fuses them into one.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

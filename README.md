@@ -1,6 +1,6 @@
 # Fuse
 
-Burn two NFTs. An AI fuses them into one. Remint throws the current child away — an irreversible gacha.
+Two NFTs go in and stay locked forever. An AI fuses them into one. Remint burns that one and rolls again — an irreversible gacha.
 
 - Chain: Base Sepolia (84532)
 - Storage: Cloudflare R2
