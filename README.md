@@ -138,14 +138,14 @@ cd web && cp .env.example .env.local
 
 デプロイしたアドレス、`METADATA_SIGNER_PRIVATE_KEY`、`OPENAI_API_KEY`、R2の値を埋める。
 
-### 6. 初期素材6体を作ってmint
+### 6. 初期素材を作ってmint
 
 ```bash
 cd web
 pnpm install
 pnpm check:r2         # 先にR2の疎通だけ確認する（OpenAIは呼ばない）
-pnpm gen:materials    # OpenAIで6枚生成 → R2へ。2回目以降は既存をスキップ
-pnpm mint:materials   # mintMaterial × 6。mint済みはスキップ
+pnpm gen:materials    # OpenAIで生成 → R2へ。2回目以降は既存をスキップ
+pnpm mint:materials   # mintMaterial。チェーンを走査してmint済みはスキップ
 ```
 
 `MATERIAL_RECIPIENT` を設定すればデモ用ウォレット宛にmintできる（既定はデプロイ鍵のアドレス）。
