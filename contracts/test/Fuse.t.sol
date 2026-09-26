@@ -231,6 +231,28 @@ contract FuseTest is Test {
         assertEq(info.parentB, 2);
     }
 
+    /// Remintは3回まで。使い切ったらその子で確定する
+    function test_remint_stopsAtMaxRemints() public {
+        (uint256 child,) = _fuse(alice, 1, 2);
+        _finalize(child, "u0");
+
+        for (uint32 i = 1; i <= fuse.MAX_REMINTS(); ++i) {
+            vm.prank(alice);
+            (uint256 next,) = fuse.remint{value: FEE}(child);
+            _finalize(next, "u");
+            assertEq(fuse.childInfo(next).remintCount, i);
+            child = next;
+        }
+
+        vm.prank(alice);
+        vm.expectRevert(Fuse.RemintLimitReached.selector);
+        fuse.remint{value: FEE}(child);
+
+        // 上限に達しても子NFT自体は健在
+        assertEq(nft.ownerOf(child), alice);
+        assertTrue(fuse.childInfo(child).state == Fuse.GenState.Ready);
+    }
+
     /// 生成中はRemint不可
     function test_remint_revertsWhilePending() public {
         (uint256 childId,) = _fuse(alice, 1, 2);

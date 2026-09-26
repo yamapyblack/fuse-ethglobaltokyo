@@ -34,6 +34,9 @@ contract Fuse is Ownable, ReentrancyGuard {
 
     uint256 public constant FEE = 0.001 ether;
 
+    /// 1体の子をRemintできる回数の上限。使い切ったらその子で確定する。
+    uint32 public constant MAX_REMINTS = 3;
+
     FuseNFT public immutable nft;
     FusePool public immutable pool;
 
@@ -53,6 +56,7 @@ contract Fuse is Ownable, ReentrancyGuard {
     error NotChildOwner();
     error GenerationInProgress();
     error AlreadyBurned();
+    error RemintLimitReached();
     error NotMetadataSigner();
     error NotPending();
     error ZeroAddress();
@@ -123,6 +127,7 @@ contract Fuse is Ownable, ReentrancyGuard {
     }
 
     /// @notice 今の子を焼いて、別tokenIdの子を新しく生む。親は再投入しない。
+    /// @dev 1系統あたり MAX_REMINTS 回まで。
     /// @dev 素材として使われた子はプール所有になっているので、所有者チェックで自然に弾かれる。
     function remint(uint256 tokenId) external payable nonReentrant returns (uint256 newTokenId, uint256 requestId) {
         if (msg.value != FEE) revert IncorrectFee();
@@ -132,6 +137,7 @@ contract Fuse is Ownable, ReentrancyGuard {
         if (prev.state == GenState.Burned) revert AlreadyBurned();
         if (prev.state == GenState.Pending) revert GenerationInProgress();
         if (nft.ownerOf(tokenId) != msg.sender) revert NotChildOwner();
+        if (prev.remintCount >= MAX_REMINTS) revert RemintLimitReached();
 
         uint256 parentA = prev.parentA;
         uint256 parentB = prev.parentB;

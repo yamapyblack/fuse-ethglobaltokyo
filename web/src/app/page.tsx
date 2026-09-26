@@ -8,11 +8,11 @@ import { readContract, waitForTransactionReceipt, writeContract } from "wagmi/ac
 import { baseSepolia } from "wagmi/chains";
 import { NftCard } from "@/components/NftCard";
 import { fuseAbi, fuseNftAbi } from "@/lib/abi";
-import { FEE_WEI, FUSE_ADDRESS, FUSE_NFT_ADDRESS, isConfigured } from "@/lib/config";
+import { EXPLORER, FEE_WEI, FUSE_ADDRESS, FUSE_NFT_ADDRESS, isConfigured } from "@/lib/config";
 import { useOwnedTokens } from "@/lib/useOwnedTokens";
 import { wagmiConfig } from "@/lib/wagmi";
 
-type Step = { label: string } | null;
+type Step = { label: string; hash?: `0x${string}` } | null;
 
 export default function SelectPage() {
   const router = useRouter();
@@ -47,17 +47,18 @@ export default function SelectPage() {
         args: [address, FUSE_ADDRESS],
       });
       if (!approved) {
-        setStep({ label: "承認中…" });
+        setStep({ label: "Approving…" });
         const hash = await writeContract(wagmiConfig, {
           address: FUSE_NFT_ADDRESS,
           abi: fuseNftAbi,
           functionName: "setApprovalForAll",
           args: [FUSE_ADDRESS, true],
         });
+        setStep({ label: "Approving…", hash });
         await waitForTransactionReceipt(wagmiConfig, { hash });
       }
 
-      setStep({ label: "配合中…" });
+      setStep({ label: "Minting…" });
       const hash = await writeContract(wagmiConfig, {
         address: FUSE_ADDRESS,
         abi: fuseAbi,
@@ -65,12 +66,13 @@ export default function SelectPage() {
         args: [selected[0], selected[1]],
         value: FEE_WEI,
       });
+      setStep({ label: "Minting…", hash });
       const receipt = await waitForTransactionReceipt(wagmiConfig, { hash });
 
       const [log] = parseEventLogs({ abi: fuseAbi, eventName: "FuseRequested", logs: receipt.logs });
-      if (!log) throw new Error("FuseRequested イベントが見つかりませんでした");
+      if (!log) throw new Error("FuseRequested event not found in the receipt");
 
-      router.push(`/result/${log.args.childTokenId}`);
+      router.push(`/result/${log.args.childTokenId}?tx=${hash}`);
     } catch (e) {
       setStep(null);
       setError(toMessage(e));
@@ -80,10 +82,10 @@ export default function SelectPage() {
   if (!isConfigured()) {
     return (
       <div className="card center">
-        <h1>セットアップ未完了</h1>
+        <h1>Setup incomplete</h1>
         <p className="note">
-          <code>.env.local</code> に <code>NEXT_PUBLIC_FUSE_ADDRESS</code> と{" "}
-          <code>NEXT_PUBLIC_FUSE_NFT_ADDRESS</code> を設定してください。
+          Set <code>NEXT_PUBLIC_FUSE_ADDRESS</code> and <code>NEXT_PUBLIC_FUSE_NFT_ADDRESS</code> in{" "}
+          <code>.env.local</code>.
         </p>
       </div>
     );
@@ -91,29 +93,29 @@ export default function SelectPage() {
 
   return (
     <main>
-      <h1>親を2体えらぶ</h1>
+      <h1>Pick two parents</h1>
       <p className="lead">
-        選んだ2体はプールへ永久にロックされ、AIが合成した子NFTが1体生まれます。
+        The two you pick are locked in the pool forever, and an AI fuses them into one new NFT.
         <br />
-        料金は 0.001 ETH ＋ ガス代。
+        0.001 ETH + gas.
       </p>
 
       {!ready ? (
         <div className="card center">
           <div style={{ fontSize: 40 }}>🫧</div>
           <p className="note">
-            {isConnected ? "Base Sepolia に切り替えてください。" : "ウォレットを接続してください。"}
+            {isConnected ? "Switch to Base Sepolia to continue." : "Connect your wallet to start."}
           </p>
         </div>
       ) : isLoading ? (
         <div className="card center">
           <div className="spinner" />
-          <p className="note">NFTを読み込み中…</p>
+          <p className="note">Loading your NFTs…</p>
         </div>
       ) : tokens.length === 0 ? (
         <div className="card center">
           <div style={{ fontSize: 40 }}>🥚</div>
-          <p className="note">このウォレットにNFTがありません。初期素材をmintしてから試してください。</p>
+          <p className="note">No NFTs in this wallet. Mint the starter creatures first.</p>
         </div>
       ) : (
         <div className="grid">
@@ -145,12 +147,20 @@ export default function SelectPage() {
               <div style={{ fontWeight: 700, fontSize: 14 }}>
                 {selected.length === 2
                   ? `#${selected[0]} × #${selected[1]}`
-                  : `あと ${2 - selected.length} 体えらぶ`}
+                  : `Pick ${2 - selected.length} more`}
               </div>
-              <div className="note">0.001 ETH ＋ ガス代 / 親は戻ってきません</div>
+              <div className="note">
+                {step?.hash ? (
+                  <a href={`${EXPLORER}/tx/${step.hash}`} target="_blank" rel="noreferrer">
+                    View transaction on BaseScan ↗
+                  </a>
+                ) : (
+                  "0.001 ETH + gas / parents never come back"
+                )}
+              </div>
             </div>
             <button className="primary" disabled={selected.length !== 2 || busy} onClick={handleFuse}>
-              {step ? step.label : "配合する"}
+              {step ? step.label : "Fuse"}
             </button>
           </div>
         </div>
@@ -161,6 +171,6 @@ export default function SelectPage() {
 
 function toMessage(e: unknown): string {
   const raw = e instanceof Error ? e.message : String(e);
-  if (/User rejected|User denied/i.test(raw)) return "ウォレットで拒否されました。";
+  if (/User rejected|User denied/i.test(raw)) return "Rejected in your wallet.";
   return raw.split("\n")[0];
 }

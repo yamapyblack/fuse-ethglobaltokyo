@@ -27,6 +27,22 @@ export async function readChildInfo(tokenId: bigint): Promise<ChildInfo> {
   return info as ChildInfo;
 }
 
+let cachedMaxRemints: number | undefined;
+
+/// Remint回数の上限。コントラクトの定数なので一度読んだら使い回す。
+export async function readMaxRemints(): Promise<number> {
+  if (cachedMaxRemints === undefined) {
+    cachedMaxRemints = Number(
+      await publicClient.readContract({
+        address: FUSE_ADDRESS,
+        abi: fuseAbi,
+        functionName: "MAX_REMINTS",
+      }),
+    );
+  }
+  return cachedMaxRemints;
+}
+
 export async function readTokenUri(tokenId: bigint): Promise<string> {
   return publicClient.readContract({
     address: FUSE_NFT_ADDRESS,

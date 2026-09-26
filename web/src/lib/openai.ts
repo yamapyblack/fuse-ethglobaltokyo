@@ -21,10 +21,10 @@ async function withKeyHint<T>(fn: () => Promise<T>): Promise<T> {
     const status = (e as { status?: number }).status;
     if (status !== 401 && status !== 403) throw e;
     const key = process.env.OPENAI_API_KEY ?? "";
-    const suffix = key ? `…${key.slice(-4)} (長さ ${key.length})` : "(未設定)";
+    const suffix = key ? `…${key.slice(-4)} (length ${key.length})` : "(not set)";
     throw new Error(
-      `${e instanceof Error ? e.message : String(e)} / 使用した鍵: ${suffix}。` +
-        `シェルで OPENAI_API_KEY が export されていると .env.local より優先されます`,
+      `${e instanceof Error ? e.message : String(e)} / key used: ${suffix}. ` +
+        `An exported OPENAI_API_KEY in your shell takes precedence over .env.local`,
     );
   }
 }

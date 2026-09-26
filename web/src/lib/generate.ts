@@ -83,8 +83,8 @@ async function ensureMetadata(tokenId: bigint, info: ChildInfo, imageUrl: string
   const metadata = {
     name: `Fuse #${tokenId}`,
     description:
-      `#${info.parentA} と #${info.parentB} を配合して生まれた1体。` +
-      `親2体はプールへ永久ロックされ、この子はRemintで焼き直せます。`,
+      `Fused from #${info.parentA} and #${info.parentB}. ` +
+      `Both parents are locked in the pool forever. This one can be burned and reminted.`,
     image: imageUrl,
     attributes: [
       { trait_type: "Parent A", value: `#${info.parentA}` },

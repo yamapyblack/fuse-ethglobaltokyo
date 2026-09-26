@@ -17,7 +17,7 @@ export function ConnectButton() {
         disabled={!connector || isPending}
         onClick={() => connector && connect({ connector })}
       >
-        {isPending ? "接続中…" : "ウォレット接続"}
+        {isPending ? "Connecting…" : "Connect Wallet"}
       </button>
     );
   }
@@ -25,7 +25,7 @@ export function ConnectButton() {
   if (chainId !== baseSepolia.id) {
     return (
       <button className="danger" onClick={() => switchChain({ chainId: baseSepolia.id })}>
-        Base Sepoliaに切り替え
+        Switch to Base Sepolia
       </button>
     );
   }

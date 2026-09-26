@@ -59,7 +59,7 @@ async function main() {
       const metadataUrl = await withRetry("metadata", () =>
         putJson(metadataKey, {
           name: material.name,
-          description: "Fuseの初期素材。2体えらんで配合すると、新しい1体が生まれます。",
+          description: "A starter creature for Fuse. Pick two and fuse them into a brand-new one.",
           image: publicUrl(imageKey),
           attributes: [
             { trait_type: "Kind", value: "Material" },

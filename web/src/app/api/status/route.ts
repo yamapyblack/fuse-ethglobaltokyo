@@ -1,4 +1,5 @@
 import { readStatus } from "@/lib/generate";
+import { readMaxRemints } from "@/lib/chain";
 import { resolveImageUrl } from "@/lib/resolve-image";
 import { GEN_STATE } from "@/lib/config";
 
@@ -16,7 +17,8 @@ export async function GET(req: Request) {
   try {
     const { info, tokenUri, request } = await readStatus(tokenId);
 
-    const [image, parentA, parentB] = await Promise.all([
+    const [maxRemints, image, parentA, parentB] = await Promise.all([
+      readMaxRemints(),
       tokenUri ? resolveImageUrl(tokenId) : Promise.resolve(null),
       resolveImageUrl(info.parentA, true),
       resolveImageUrl(info.parentB, true),
@@ -28,6 +30,7 @@ export async function GET(req: Request) {
         chainState: GEN_STATE[info.state] ?? "Unknown",
         requestId: info.requestId.toString(),
         remintCount: Number(info.remintCount),
+        maxRemints,
         prevChildTokenId: info.prevChildTokenId.toString(),
         seed: `0x${info.seed.toString(16)}`,
         parents: [

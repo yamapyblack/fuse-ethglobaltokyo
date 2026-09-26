@@ -42,6 +42,19 @@ export const fuseAbi = [
   },
   {
     "type": "function",
+    "name": "MAX_REMINTS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "childInfo",
     "inputs": [
       {
@@ -522,6 +535,11 @@ export const fuseAbi = [
   {
     "type": "error",
     "name": "ReentrancyGuardReentrantCall",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "RemintLimitReached",
     "inputs": []
   },
   {

@@ -32,7 +32,7 @@ export function NftCard({
         // eslint-disable-next-line @next/next/no-img-element
         <img className="thumb" src={token.image} alt={`#${token.tokenId}`} />
       ) : (
-        <div className="thumb thumb-empty">{token.pending ? "生成中…" : "画像なし"}</div>
+        <div className="thumb thumb-empty">{token.pending ? "Generating…" : "No image"}</div>
       )}
       <div className="nft-id">
         <span>#{token.tokenId.toString()}</span>

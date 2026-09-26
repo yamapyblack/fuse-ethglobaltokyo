@@ -15,6 +15,7 @@ type Status = {
   chainState: "None" | "Pending" | "Ready" | "Burned" | "Unknown";
   requestId: string;
   remintCount: number;
+  maxRemints: number;
   seed: string;
   parents: { tokenId: string; image: string | null }[];
   tokenUri: string | null;
@@ -29,13 +30,14 @@ const KICK_INTERVAL_MS = 25_000;
 /// 誤判定しないよう、この回数連続で None を見るまでは確認中として扱う。
 const NONE_TOLERANCE = 4;
 
-export function ResultView({ tokenId }: { tokenId: string }) {
+export function ResultView({ tokenId, fuseTx }: { tokenId: string; fuseTx: string | null }) {
   const router = useRouter();
   const { isConnected } = useAccount();
   const [status, setStatus] = useState<Status | null>(null);
   const [noneStreak, setNoneStreak] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [remintTx, setRemintTx] = useState<`0x${string}` | null>(null);
   const [reminting, setReminting] = useState(false);
   const lastKick = useRef(0);
 
@@ -85,6 +87,7 @@ export function ResultView({ tokenId }: { tokenId: string }) {
     setConfirming(false);
     setReminting(true);
     setError(null);
+    setRemintTx(null);
     try {
       const hash = await writeContract(wagmiConfig, {
         address: FUSE_ADDRESS,
@@ -93,10 +96,11 @@ export function ResultView({ tokenId }: { tokenId: string }) {
         args: [BigInt(tokenId)],
         value: FEE_WEI,
       });
+      setRemintTx(hash);
       const receipt = await waitForTransactionReceipt(wagmiConfig, { hash });
       const [log] = parseEventLogs({ abi: fuseAbi, eventName: "RemintRequested", logs: receipt.logs });
-      if (!log) throw new Error("RemintRequested イベントが見つかりませんでした");
-      router.push(`/result/${log.args.childTokenId}`);
+      if (!log) throw new Error("RemintRequested event not found in the receipt");
+      router.push(`/result/${log.args.childTokenId}?tx=${hash}`);
     } catch (e) {
       setError(toMessage(e));
     } finally {
@@ -107,9 +111,9 @@ export function ResultView({ tokenId }: { tokenId: string }) {
   if (error && !status) {
     return (
       <div className="card center">
-        <h1>読み込めませんでした</h1>
+        <h1>Could not load</h1>
         <p className="note">{error}</p>
-        <Link href="/">もどる</Link>
+        <Link href="/">Back</Link>
       </div>
     );
   }
@@ -118,7 +122,7 @@ export function ResultView({ tokenId }: { tokenId: string }) {
     return (
       <div className="card center">
         <div className="spinner" />
-        <p className="note">状態を確認中…</p>
+        <p className="note">Checking on-chain state…</p>
       </div>
     );
   }
@@ -128,7 +132,7 @@ export function ResultView({ tokenId }: { tokenId: string }) {
     return (
       <div className="card center">
         <div className="spinner" />
-        <p className="note">チェーンの状態を確認中…</p>
+        <p className="note">Checking on-chain state…</p>
       </div>
     );
   }
@@ -136,9 +140,9 @@ export function ResultView({ tokenId }: { tokenId: string }) {
   if (status.chainState === "None") {
     return (
       <div className="card center">
-        <h1>子NFTではありません</h1>
-        <p className="note">#{tokenId} は配合で生まれたNFTではないので、Remintできません。</p>
-        <Link href="/">もどる</Link>
+        <h1>Not a fused NFT</h1>
+        <p className="note">#{tokenId} was not created by fusing, so it cannot be reminted.</p>
+        <Link href="/">Back</Link>
       </div>
     );
   }
@@ -147,15 +151,17 @@ export function ResultView({ tokenId }: { tokenId: string }) {
     return (
       <div className="card center">
         <div style={{ fontSize: 40 }}>🔥</div>
-        <h1>このNFTはRemintで焼かれました</h1>
-        <p className="note">#{tokenId} はもう存在しません。新しい子NFTをご確認ください。</p>
-        <Link href="/">もどる</Link>
+        <h1>Burned by a Remint</h1>
+        <p className="note">#{tokenId} no longer exists. Check the new NFT instead.</p>
+        <Link href="/">Back</Link>
       </div>
     );
   }
 
   const failedForGood = status.request?.status === "failed" && status.request.attempts >= MAX_ATTEMPTS;
   const generating = status.chainState === "Pending";
+  const remintsLeft = Math.max(0, status.maxRemints - status.remintCount);
+  const pendingTx = remintTx ?? (generating ? fuseTx : null);
 
   return (
     <main className="card result">
@@ -180,21 +186,21 @@ export function ResultView({ tokenId }: { tokenId: string }) {
           <div className="result-art" style={{ display: "grid", placeItems: "center" }}>
             <div style={{ display: "grid", gap: 14, justifyItems: "center" }}>
               <div className="spinner" />
-              <div className="pulse note">AIが2体を配合しています…</div>
+              <div className="pulse note">An AI is fusing the two…</div>
             </div>
           </div>
           <p className="note">
-            30〜60秒ほどかかります。この画面を開いたままお待ちください。
-            {status.request ? `（試行 ${status.request.attempts} 回目）` : null}
+            Takes 30–60 seconds. Keep this page open.
+            {status.request ? ` (attempt ${status.request.attempts})` : null}
           </p>
           {failedForGood ? (
             <div className="warn">
-              生成が {status.request?.attempts} 回失敗しました：{status.request?.error}
+              Generation failed {status.request?.attempts} times: {status.request?.error}
               <br />
-              追加の課金なしで再試行できます。
+              You can retry at no extra cost.
               <div style={{ marginTop: 10 }}>
                 <button className="ghost" onClick={() => void kick(true)}>
-                  もう一度試す
+                  Try again
                 </button>
               </div>
             </div>
@@ -206,14 +212,22 @@ export function ResultView({ tokenId }: { tokenId: string }) {
             // eslint-disable-next-line @next/next/no-img-element
             <img className="result-art" src={status.image} alt={`#${status.tokenId}`} />
           ) : (
-            <div className="result-art thumb-empty">画像を読み込めませんでした</div>
+            <div className="result-art thumb-empty">Could not load the image</div>
           )}
-          <h1>できました！</h1>
+          <h1>Done!</h1>
           <p className="note">
-            この子NFTはもう発行済みです。満足ならこのまま終了で大丈夫です。
+            Your NFT is already minted. If you are happy with it, you can stop right here.
           </p>
         </>
       )}
+
+      {pendingTx ? (
+        <p className="note">
+          <a href={`${EXPLORER}/tx/${pendingTx}`} target="_blank" rel="noreferrer">
+            View mint transaction on BaseScan ↗
+          </a>
+        </p>
+      ) : null}
 
       <div className="meta">
         <div>
@@ -221,8 +235,10 @@ export function ResultView({ tokenId }: { tokenId: string }) {
           <span>#{status.tokenId}</span>
         </div>
         <div>
-          <span>Remint回数</span>
-          <span>{status.remintCount}</span>
+          <span>Remints used</span>
+          <span>
+            {status.remintCount} / {status.maxRemints}
+          </span>
         </div>
         <div>
           <span>seed</span>
@@ -237,7 +253,7 @@ export function ResultView({ tokenId }: { tokenId: string }) {
           </div>
         ) : null}
         <div>
-          <span>コントラクト</span>
+          <span>Contract</span>
           <a href={`${EXPLORER}/address/${FUSE_ADDRESS}`} target="_blank" rel="noreferrer">
             BaseScan
           </a>
@@ -249,37 +265,52 @@ export function ResultView({ tokenId }: { tokenId: string }) {
       <div className="row" style={{ justifyContent: "center" }}>
         <Link href="/">
           <button className="ghost" type="button">
-            トップへ
+            Home
           </button>
         </Link>
         <button
           className="danger"
-          disabled={generating || reminting || !isConnected}
+          disabled={generating || reminting || !isConnected || remintsLeft === 0}
           onClick={() => setConfirming(true)}
         >
-          {reminting ? "Remint中…" : "Remint (0.001 ETH)"}
+          {reminting ? "Reminting…" : "Remint (0.001 ETH)"}
         </button>
       </div>
-      {generating ? <p className="note">生成が終わるまでRemintはできません。</p> : null}
+      {generating ? (
+        <p className="note">Remint is locked while the image is being generated.</p>
+      ) : remintsLeft === 0 ? (
+        <p className="note">
+          No remints left ({status.maxRemints} of {status.maxRemints} used). This one is final.
+        </p>
+      ) : (
+        <p className="note">
+          {remintsLeft} of {status.maxRemints} remints left.
+        </p>
+      )}
 
       {confirming ? (
         <div className="modal-backdrop" onClick={() => setConfirming(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h1 style={{ fontSize: 20 }}>本当にRemintしますか？</h1>
+            <h1 style={{ fontSize: 20 }}>Remint this NFT?</h1>
             <div className="warn">
-              現在のNFT #{status.tokenId} は<strong>burnされ、元に戻せません</strong>。
+              #{status.tokenId} will be <strong>burned and cannot be recovered</strong>.
               <br />
-              新しい子NFTが別のtokenIdで発行され、画面はその結果に置き換わります。
+              A new NFT is minted with a different tokenId, and this page is replaced with the new
+              result.
               <br />
-              親 #{status.parents[0]?.tokenId} と #{status.parents[1]?.tokenId} は再投入されません。
+              Parents #{status.parents[0]?.tokenId} and #{status.parents[1]?.tokenId} are not
+              consumed again.
             </div>
-            <p className="note">0.001 ETH ＋ ガス代がかかります。新旧の比較や元に戻す操作はありません。</p>
+            <p className="note">
+              0.001 ETH + gas. No side-by-side comparison, no undo. {remintsLeft} of{" "}
+              {status.maxRemints} remints left.
+            </p>
             <div className="modal-actions">
               <button className="ghost" onClick={() => setConfirming(false)}>
-                やめる
+                Cancel
               </button>
               <button className="danger" onClick={handleRemint}>
-                burnしてRemint
+                Burn &amp; Remint
               </button>
             </div>
           </div>
@@ -291,6 +322,7 @@ export function ResultView({ tokenId }: { tokenId: string }) {
 
 function toMessage(e: unknown): string {
   const raw = e instanceof Error ? e.message : String(e);
-  if (/User rejected|User denied/i.test(raw)) return "ウォレットで拒否されました。";
+  if (/User rejected|User denied/i.test(raw)) return "Rejected in your wallet.";
+  if (/RemintLimitReached/i.test(raw)) return "This NFT has used all of its remints.";
   return raw.split("\n")[0];
 }

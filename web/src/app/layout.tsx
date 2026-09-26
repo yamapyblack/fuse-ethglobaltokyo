@@ -6,12 +6,12 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Fuse",
-  description: "2体のNFTを消費して、AIが合成した1体を生み出す。",
+  description: "Burn two NFTs. An AI fuses them into one.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ja">
+    <html lang="en">
       <body>
         <Providers>
           <div className="shell">
