@@ -25,6 +25,8 @@ Requirements (Japanese): [docs/fuse-requirements.md](docs/fuse-requirements.md)
 | FusePool | [`0x8E648661964bc1Fb82037EaDA2e712eC58907665`](https://sepolia.basescan.org/address/0x8E648661964bc1Fb82037EaDA2e712eC58907665) |
 | Fuse | [`0xFF9116784747986f8c5D2c10c63D6f9a681268a1`](https://sepolia.basescan.org/address/0xFF9116784747986f8c5D2c10c63D6f9a681268a1) |
 
+All three are verified on BaseScan, so the source is readable from the links above.
+
 The starter set is 26 pieces (#1–#26): **13 creatures (#1–#13) and 13 sushi (#14–#26)**.
 Anything minted after #26 is a fused child.
 
