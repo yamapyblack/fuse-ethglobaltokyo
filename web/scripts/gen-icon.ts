@@ -2,6 +2,7 @@
 ///   src/app/favicon.ico     ブラウザのタブ (16/32/48)
 ///   src/app/icon.png        高解像度のタブアイコン (512)
 ///   src/app/apple-icon.png  ホーム画面 (180)
+///   public/logo.png         ヘッダーのロゴマーク (128)
 ///   public/icon-1024.png    提出フォームなどに貼る原寸
 ///
 /// favicon.ico を別に置くのは、Chromeが <link> を見る前に /favicon.ico を
@@ -61,6 +62,7 @@ async function main() {
 
   const outputs: [string, number][] = [
     ["public/icon-1024.png", 1024],
+    ["public/logo.png", 128],
     ["src/app/icon.png", 512],
     ["src/app/apple-icon.png", 180],
   ];

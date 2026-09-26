@@ -52,10 +52,11 @@ body {
 }
 
 .logo-mark {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--lavender) 0%, var(--pink) 100%);
+  object-fit: cover;
+  display: block;
 }
 
 h1 {

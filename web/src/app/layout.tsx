@@ -17,7 +17,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="shell">
             <header className="topbar">
               <Link href="/" className="logo">
-                <span className="logo-mark" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img className="logo-mark" src="/logo.png" alt="" />
                 Fuse
               </Link>
               <ConnectButton />
