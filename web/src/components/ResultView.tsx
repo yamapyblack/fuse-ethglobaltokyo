@@ -189,13 +189,10 @@ export function ResultView({ tokenId, fuseTx }: { tokenId: string; fuseTx: strin
               <div className="pulse note">An AI is fusing the two…</div>
             </div>
           </div>
-          <p className="note">
-            Takes 30–60 seconds. Keep this page open.
-            {status.request ? ` (attempt ${status.request.attempts})` : null}
-          </p>
+          <p className="note">Takes 30–60 seconds. Keep this page open.</p>
           {failedForGood ? (
             <div className="warn">
-              Generation failed {status.request?.attempts} times: {status.request?.error}
+              Generation failed: {status.request?.error}
               <br />
               You can retry at no extra cost.
               <div style={{ marginTop: 10 }}>
