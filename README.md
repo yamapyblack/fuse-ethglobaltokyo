@@ -13,18 +13,17 @@
 
 | コントラクト | アドレス |
 | --- | --- |
-| FuseNFT | [`0x0d32356ae050406DD2b33C6CdB14B2A7867f06cA`](https://sepolia.basescan.org/address/0x0d32356ae050406DD2b33C6CdB14B2A7867f06cA) |
-| FusePool | [`0x70ae089e5a45BAd2cdB3b3f42a4bD2c509c375DF`](https://sepolia.basescan.org/address/0x70ae089e5a45BAd2cdB3b3f42a4bD2c509c375DF) |
-| Fuse | [`0x926b31D4BA670e2AAAF14962A34d157c7fFCC222`](https://sepolia.basescan.org/address/0x926b31D4BA670e2AAAF14962A34d157c7fFCC222) |
+| FuseNFT | [`0xe151917D3cc0B93026Eaa0a1E868d5Dc0376b8F6`](https://sepolia.basescan.org/address/0xe151917D3cc0B93026Eaa0a1E868d5Dc0376b8F6) |
+| FusePool | [`0x1513AB76ac18D46C540D3f6a7df50d58F513c218`](https://sepolia.basescan.org/address/0x1513AB76ac18D46C540D3f6a7df50d58F513c218) |
+| Fuse | [`0xcAF686Abd6cF393cf4c6B8baB7D34adc79e4f3e0`](https://sepolia.basescan.org/address/0xcAF686Abd6cF393cf4c6B8baB7D34adc79e4f3e0) |
 
-初期素材6体をmint済み。動作確認で #1 と #2 を配合して子 #7 を作り、Remintで #8 に焼き直したため、
-**残りの素材は #3 #4 #5 #6 の4体**（＝あと2回配合できる）。
+初期素材6体 (#1〜#6) をmint済みで、まだ1体も消費していない。
 
 `web/.env.local` に以下を入れること。
 
 ```
-NEXT_PUBLIC_FUSE_ADDRESS=0x926b31D4BA670e2AAAF14962A34d157c7fFCC222
-NEXT_PUBLIC_FUSE_NFT_ADDRESS=0x0d32356ae050406DD2b33C6CdB14B2A7867f06cA
+NEXT_PUBLIC_FUSE_ADDRESS=0xcAF686Abd6cF393cf4c6B8baB7D34adc79e4f3e0
+NEXT_PUBLIC_FUSE_NFT_ADDRESS=0xe151917D3cc0B93026Eaa0a1E868d5Dc0376b8F6
 ```
 
 ## 構成
