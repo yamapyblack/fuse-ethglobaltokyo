@@ -1,7 +1,7 @@
 import { readChildInfo, readTokenUri, finalizeMetadata, type ChildInfo } from "./chain";
 import { keys } from "./keys";
 import { generateFusedImage } from "./openai";
-import { buildPrompt } from "./prompt";
+import { buildChildPrompt } from "./prompt";
 import { exists, getBuffer, put, publicUrl, putJson } from "./r2";
 import { claimLock, loadState, MAX_ATTEMPTS, saveState, type RequestState } from "./state";
 
@@ -73,13 +73,13 @@ async function ensureImage(tokenId: bigint, info: ChildInfo): Promise<string> {
     snapshotParent(info.parentA),
     snapshotParent(info.parentB),
   ]);
-  const { prompt } = buildPrompt(info.seed);
+  const { prompt } = buildChildPrompt(info.seed);
   const image = await generateFusedImage(parents, prompt);
   return put(key, image, "image/png");
 }
 
 async function ensureMetadata(tokenId: bigint, info: ChildInfo, imageUrl: string): Promise<string> {
-  const { traits } = buildPrompt(info.seed);
+  const { traits } = buildChildPrompt(info.seed);
   const metadata = {
     name: `Fuse #${tokenId}`,
     description:
@@ -90,11 +90,10 @@ async function ensureMetadata(tokenId: bigint, info: ChildInfo, imageUrl: string
       { trait_type: "Parent A", value: `#${info.parentA}` },
       { trait_type: "Parent B", value: `#${info.parentB}` },
       { trait_type: "Remint Count", value: Number(info.remintCount) },
-      { trait_type: "Dominance", value: traits.dominance.label },
-      { trait_type: "Accent", value: traits.accent.label },
-      { trait_type: "Charm", value: traits.charm.label },
-      { trait_type: "Expression", value: traits.expression.label },
-      { trait_type: "Pose", value: traits.pose.label },
+      { trait_type: "Mood", value: traits.mood },
+      { trait_type: "Accent", value: traits.accent },
+      { trait_type: "Charm", value: traits.charm },
+      { trait_type: "Pose", value: traits.pose },
       { trait_type: "Seed", value: `0x${info.seed.toString(16)}` },
     ],
   };

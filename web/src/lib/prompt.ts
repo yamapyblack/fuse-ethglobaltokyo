@@ -1,156 +1,123 @@
-/// 描き方は全素材・全世代で固定。パレットだけ被写体に合わせて差し替える。
-/// 寿司まで薄紫にすると寿司に見えなくなるので、そこだけ分けている。
+import { ACCENTS, BASES, CHARMS, MOODS, POSES, traitsFromSeed, type Family } from "./traits";
+
+/// 描き方は全世代で固定。パレットだけ被写体に合わせて差し替える。
+/// 全部を薄紫にすると寿司も縁起物もそれと分からなくなるため。
 const STYLE_BASE =
   "Style: kawaii chibi mascot illustration, soft rounded shapes, thick gentle outlines, " +
   "flat shading with light pastel gradients, one single subject centered in frame, " +
   "plain off-white background, sticker-like clean edges, " +
   "no text, no watermark, no border, no collage, no split panels.";
 
-const CREATURE_PALETTE = "Palette: pastel lavender and white.";
+const PALETTES: Record<Family, string> = {
+  creature: "Palette: pastel lavender and white.",
+  sushi:
+    "Palette: soft pastel food colours kept light and desaturated so it sits in the same set as " +
+    "the pastel creatures — cream white rice, muted salmon pink, pale coral red, soft dark seaweed green.",
+  engimono:
+    "Palette: soft pastel versions of traditional Japanese colours, kept light so it sits in the same " +
+    "set as the pastel creatures — muted vermilion, pale gold, soft indigo, cream white.",
+};
 
-/// 背景指定はプロンプトの最後に置く。パレットより前に書くと、寿司の暖色が
-/// 背景まで塗られて暗いグラデーションになった（13枚中7枚）。
+/// 背景指定はプロンプトの最後に置く。パレットより前に書くと、その色が背景まで
+/// 塗られて暗いグラデーションになる（実際に13枚中7枚がそうなった）。
 const BACKGROUND =
   "The background must be one flat off-white tone (#FAF7F2), the same for every image in this set. " +
   "No dark background, no coloured gradient, no vignette, no glow, no scene, no table surface.";
 
-const SUSHI_PALETTE =
-  "Palette: soft pastel food colours kept light and desaturated so it sits in the same set as " +
-  "the pastel creatures — cream white rice, muted salmon pink, pale coral red, soft dark seaweed green.";
+/// 見た目のトレイトを英語の指示にする。Charmは小さすぎると描き落とされるので、
+/// はっきり見えるものだけにしてある。
+const MOOD_TEXT: Record<string, string> = {
+  Sleepy: "a gentle sleepy smile with closed eyes",
+  Curious: "wide curious eyes",
+  Cheerful: "a cheerful open-mouth grin",
+  Calm: "a calm closed-eye smile",
+  Surprised: "a slightly surprised look",
+};
+const ACCENT_TEXT: Record<string, string> = {
+  Lilac: "soft lilac accents",
+  Mint: "pale mint accents",
+  Peach: "peach pink accents",
+  Butter: "butter yellow accents",
+  Sky: "sky blue accents",
+  Cream: "cream beige accents",
+};
+const CHARM_TEXT: Record<string, string> = {
+  Sparkle: "a bright four-pointed sparkle floating just above it",
+  Ribbon: "a large soft ribbon bow tied on it",
+  "Star Cheek": "a clear star-shaped marking on its cheek",
+  "Cloud Tail": "a fluffy cloud-shaped tuft attached at the back",
+  "Flower Crown": "a small crown of round flowers resting on top",
+  "Tiny Hat": "a tiny rounded hat sitting on top",
+  Blush: "strong round blush circles on both cheeks",
+  Halo: "a glowing golden ring floating above it",
+};
+const POSE_TEXT: Record<string, string> = {
+  Sitting: "sitting down, settled and low",
+  Standing: "standing upright and facing forward",
+  Hopping: "caught mid-hop, lifted off the ground",
+  Curled: "curled up into a soft round shape",
+  Leaning: "leaning forward, tilted to one side",
+};
 
-/// 子は親2体の色を受け継ぐ。生き物と寿司が混ざるので、被写体の種類は決め打ちしない。
-const CHILD_PALETTE = "Palette: pastel, blended from the colours of the two parents.";
+export type PieceTraits = {
+  family: Family;
+  motif: string;
+  mood: string;
+  accent: string;
+  charm: string;
+  pose: string;
+};
+
+function traitLines(t: PieceTraits): string {
+  return [
+    `Give it ${ACCENT_TEXT[t.accent]}.`,
+    `It has ${CHARM_TEXT[t.charm]}.`,
+    `Its face shows ${MOOD_TEXT[t.mood]}.`,
+    `It is ${POSE_TEXT[t.pose]}.`,
+  ].join("\n");
+}
+
+/// Genesis用。親がいないので単体で描かせる。
+export function buildGenesisPrompt(t: PieceTraits): string {
+  const subject =
+    t.family === "creature"
+      ? `Design a creature: ${t.motif}.`
+      : `Design a cute mascot version of ${t.motif}. Give it a simple face so it reads as a character.`;
+  return [
+    subject,
+    "It will later be fused with another subject from this set, so keep the silhouette simple and readable.",
+    traitLines(t),
+    STYLE_BASE,
+    PALETTES[t.family],
+    BACKGROUND,
+  ].join("\n");
+}
 
 const FUSION =
   "You are given two reference images: parent A and parent B. " +
-  "Each parent is either a small creature or a piece of sushi. " +
+  "Each parent is a small creature, a piece of sushi, or a Japanese lucky charm. " +
   "Design ONE brand-new character that fuses both parents into a single coherent design. " +
-  "Merge their silhouette, their distinctive parts (ears, horns, fins, rice base, seaweed wrap, toppings) " +
-  "and their colour accents so the result reads as one creature born from the two, " +
-  "not as two objects placed together. Do not place the parents side by side.";
+  "Merge their silhouette, their distinctive parts and their colour accents so the result reads as " +
+  "one character born from the two, not as two objects placed together. " +
+  "Do not place the parents side by side.";
 
-/// label はNFTのattributesに出す短い名前、text は画像生成に渡す指示。
-type Option = { label: string; text: string };
-
-const DOMINANCE: readonly Option[] = [
-  { label: "A-dominant", text: "Parent A leads the overall silhouette; parent B contributes the color accents and markings." },
-  { label: "B-dominant", text: "Parent B leads the overall silhouette; parent A contributes the color accents and markings." },
-  { label: "Even", text: "Balance both parents evenly, roughly half and half." },
-  { label: "A-head", text: "Take the head from parent A and the body proportions from parent B." },
-  { label: "B-head", text: "Take the head from parent B and the body proportions from parent A." },
-];
-
-const ACCENT: readonly Option[] = [
-  { label: "Lilac", text: "soft lilac accents" },
-  { label: "Mint", text: "pale mint accents" },
-  { label: "Peach", text: "peach pink accents" },
-  { label: "Butter", text: "butter yellow accents" },
-  { label: "Sky", text: "sky blue accents" },
-  { label: "Cream", text: "cream beige accents" },
-];
-
-const CHARM: readonly Option[] = [
-  { label: "Sparkle", text: "a tiny floating sparkle above its head" },
-  { label: "Ribbon", text: "a small ribbon on one ear" },
-  { label: "Star Cheek", text: "a little star-shaped marking on the cheek" },
-  { label: "Cloud Tail", text: "a fluffy cloud-like tail tuft" },
-  { label: "Jelly Ears", text: "translucent jelly-like tips on its ears" },
-  { label: "Gem Back", text: "a pair of tiny gem studs along its back" },
-  { label: "Blush", text: "a soft gradient blush on both cheeks" },
-  { label: "Crescent", text: "a small crescent marking on the forehead" },
-];
-
-const EXPRESSION: readonly Option[] = [
-  { label: "Sleepy", text: "a gentle sleepy smile" },
-  { label: "Curious", text: "wide curious eyes" },
-  { label: "Cheerful", text: "a cheerful open-mouth grin" },
-  { label: "Calm", text: "a calm closed-eye smile" },
-  { label: "Surprised", text: "a slightly surprised look" },
-];
-
-const POSE: readonly Option[] = [
-  { label: "Sitting", text: "sitting down with both front paws together" },
-  { label: "Standing", text: "standing upright, tail curled" },
-  { label: "Hopping", text: "mid-hop, ears lifted" },
-  { label: "Curled", text: "curled up in a soft round shape" },
-  { label: "Leaning", text: "leaning forward, one paw raised" },
-];
-
-export type FusionTraits = {
-  dominance: Option;
-  accent: Option;
-  charm: Option;
-  expression: Option;
-  pose: Option;
-};
-
-/// seedのビットを切り出して配合条件を決める。同じseedなら必ず同じ条件になる。
-export function traitsFromSeed(seed: bigint): FusionTraits {
-  const pick = (arr: readonly Option[], shift: bigint) => arr[Number((seed >> shift) % BigInt(arr.length))];
-  return {
-    dominance: pick(DOMINANCE, 0n),
-    accent: pick(ACCENT, 16n),
-    charm: pick(CHARM, 32n),
-    expression: pick(EXPRESSION, 48n),
-    pose: pick(POSE, 64n),
+/// 子はseedからトレイトを引く。Fuse.sol traitsOf() と同じ計算。
+export function buildChildPrompt(seed: bigint): { prompt: string; traits: Record<string, string> } {
+  const idx = traitsFromSeed(seed);
+  const t = {
+    mood: MOODS[idx.mood],
+    accent: ACCENTS[idx.accent],
+    charm: CHARMS[idx.charm],
+    pose: POSES[idx.pose],
   };
-}
-
-export function buildPrompt(seed: bigint): { prompt: string; traits: FusionTraits } {
-  const traits = traitsFromSeed(seed);
   const prompt = [
     FUSION,
-    `Fusion condition: ${traits.dominance.text}`,
-    `Give the new character ${traits.accent.text}, ${traits.charm.text}, ${traits.expression.text}, ${traits.pose.text}.`,
+    traitLines({ family: "creature", motif: "", ...t }),
     STYLE_BASE,
-    CHILD_PALETTE,
+    "Palette: pastel, blended from the colours of the two parents.",
     BACKGROUND,
   ].join("\n");
-  return { prompt, traits };
+  return { prompt, traits: t };
 }
 
-/// 初期素材用。親がいないので単体で描かせる。
-export function buildMaterialPrompt(index: number, motif: string, kind: MaterialKind): string {
-  return [
-    `Design subject #${index}: ${motif}.`,
-    "It will later be fused with another subject from this set, so keep the silhouette simple and readable.",
-    STYLE_BASE,
-    kind === "sushi" ? SUSHI_PALETTE : CREATURE_PALETTE,
-    BACKGROUND,
-  ].join("\n");
-}
-
-/// 初期素材26体。生き物13 + 寿司13。
-/// 半分を寿司にしているのは、生き物どうしだと配合結果が「合体した」ように見えないため。
-/// 生き物×寿司なら一目で分かる。
-export type MaterialKind = "creature" | "sushi";
-
-export const MATERIALS: readonly { name: string; motif: string; kind: MaterialKind }[] = [
-  { kind: "creature", name: "Mochi Bun", motif: "a round fluffy bunny-like creature with long drooping ears" },
-  { kind: "creature", name: "Ember Cat", motif: "a small cat-like creature with a curled flame-shaped tail" },
-  { kind: "creature", name: "Puff Chick", motif: "a chubby bird-like creature with tiny stubby wings and a tuft crest" },
-  { kind: "creature", name: "Leaf Slime", motif: "a soft slime-like creature with two little leaf sprouts on top" },
-  { kind: "creature", name: "Fluff Fox", motif: "a pudgy fox-like creature with a big bushy tail and pointed ears" },
-  { kind: "creature", name: "Pearl Draco", motif: "a tiny dragon-like creature with rounded horns and a pearl on its chest" },
-  { kind: "creature", name: "Bubble Otter", motif: "a round otter-like creature with a shiny bubble balanced on its nose" },
-  { kind: "creature", name: "Star Moth", motif: "a plump moth-like creature with rounded wings covered in star patterns" },
-  { kind: "creature", name: "Snow Bear", motif: "a small bear-like creature with fluffy snow-tuft ears and a stubby tail" },
-  { kind: "creature", name: "Coral Axolotl", motif: "an axolotl-like creature with frilly coral-shaped gills on both sides of its head" },
-  { kind: "creature", name: "Pebble Turtle", motif: "a squat turtle-like creature with a smooth rounded shell covered in soft moss" },
-  { kind: "creature", name: "Honey Bee", motif: "a chubby bee-like creature with tiny round wings and a striped fuzzy body" },
-  { kind: "creature", name: "Cloud Sheep", motif: "a sheep-like creature whose fleece is shaped like a soft puffy cloud" },
-
-  { kind: "sushi", name: "Tuna Nigiri", motif: "a piece of tuna nigiri sushi, one slice of lean red tuna draped over a rounded pillow of rice" },
-  { kind: "sushi", name: "Salmon Nigiri", motif: "a piece of salmon nigiri sushi, a pale orange salmon slice with soft white marbling over a rice pillow" },
-  { kind: "sushi", name: "Tamago Nigiri", motif: "a piece of tamago nigiri sushi, a thick pale yellow sweet omelette block on rice, belted with a strip of dark seaweed" },
-  { kind: "sushi", name: "Ebi Nigiri", motif: "a piece of shrimp nigiri sushi, a butterflied pink and white prawn with a striped tail over rice" },
-  { kind: "sushi", name: "Tako Nigiri", motif: "a piece of octopus nigiri sushi, a scalloped pale purple octopus slice over rice" },
-  { kind: "sushi", name: "Ikura Gunkan", motif: "a gunkan-maki sushi cup wrapped in dark seaweed, heaped with glossy round orange salmon roe" },
-  { kind: "sushi", name: "Uni Gunkan", motif: "a gunkan-maki sushi cup wrapped in dark seaweed, filled with soft golden sea urchin lobes" },
-  { kind: "sushi", name: "Kappa Maki", motif: "a round cucumber maki roll seen end-on, a pale green cucumber core in white rice inside a dark seaweed ring" },
-  { kind: "sushi", name: "Tekka Maki", motif: "a round tuna maki roll seen end-on, a red tuna core in white rice inside a dark seaweed ring" },
-  { kind: "sushi", name: "California Roll", motif: "a round inside-out roll seen end-on, rice on the outside dotted with orange roe, avocado and crab inside" },
-  { kind: "sushi", name: "Inari Zushi", motif: "a piece of inari sushi, a plump golden-brown fried tofu pouch folded over rice" },
-  { kind: "sushi", name: "Temaki Cone", motif: "a hand-rolled temaki sushi cone of dark seaweed with rice and fillings peeking out of the wide top" },
-  { kind: "sushi", name: "Onigiri", motif: "a rounded triangular rice ball with a wide band of dark seaweed across its base" },
-] as const;
+export { BASES };

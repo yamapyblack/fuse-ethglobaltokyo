@@ -62,6 +62,8 @@ export async function generateImage(prompt: string): Promise<Buffer> {
       prompt,
       size: "1024x1024",
       quality: "medium",
+      // 既定(auto)だと透過で返ることがあり、不透過のものと混在して見た目が揃わない
+      background: "opaque",
       n: 1,
     }),
   );
