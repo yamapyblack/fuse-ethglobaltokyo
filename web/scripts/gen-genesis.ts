@@ -33,14 +33,18 @@ type Piece = {
 const imageKey = (id: number) => `genesis/images/${id}.png`;
 const metaKey = (id: number) => `genesis/${id}.json`;
 
-async function withRetry<T>(label: string, fn: () => Promise<T>, attempts = 4): Promise<T> {
+/// 一時的なネットワーク障害で数百体が諦めることがあったので、粘る回数を増やしてある。
+/// 並列で一斉にリトライすると復旧直後にまた潰れるため、待ち時間にゆらぎを入れる。
+async function withRetry<T>(label: string, fn: () => Promise<T>, attempts = 7): Promise<T> {
   for (let i = 1; ; i++) {
     try {
       return await fn();
     } catch (e) {
       if (i >= attempts) throw e;
-      const wait = 2 ** i * 1000;
-      console.log(`  ${label} 失敗 (${i}/${attempts}): ${e instanceof Error ? e.message : e} → ${wait / 1000}秒待機`);
+      const wait = Math.min(2 ** i * 1000, 30_000) * (0.7 + Math.random() * 0.6);
+      console.log(
+        `  ${label} 失敗 (${i}/${attempts}): ${e instanceof Error ? e.message : e} → ${(wait / 1000).toFixed(0)}秒待機`,
+      );
       await new Promise((r) => setTimeout(r, wait));
     }
   }
