@@ -74,6 +74,10 @@ contract Fuse is Ownable, ReentrancyGuard {
     /// @notice tokenURI を確定できるバックエンドのアドレス。mintもburnも出金もできない。
     address public metadataSigner;
     bool public saleOpen;
+    /// @notice いま開放している発行上限。GENESIS_SUPPLY まで段階的に引き上げる。
+    /// @dev 一度に全量を開けると売れ残りがチェーン上に残る。小さく開けて売り切り、
+    ///      都度引き上げることで「完売」を積み上げられる。引き下げはできない。
+    uint256 public saleCap;
 
     uint256 private _nextRequestId = 1;
     /// @dev 既に何回配合に使ったか。未使用は0なので初期化不要。
@@ -87,6 +91,8 @@ contract Fuse is Ownable, ReentrancyGuard {
     error IncorrectPayment();
     error SaleClosed();
     error InvalidQuantity();
+    error SaleCapReached();
+    error CapCannotShrink();
     error SameParent();
     error NotOwner();
     error NoChargesLeft();
@@ -102,6 +108,7 @@ contract Fuse is Ownable, ReentrancyGuard {
     error GenesisTraitsAreOffchain();
 
     event GenesisMinted(address indexed to, uint256 indexed tokenId);
+    event SaleCapSet(uint256 cap);
     event FuseRequested(
         uint256 indexed requestId,
         uint256 indexed childTokenId,
@@ -133,6 +140,7 @@ contract Fuse is Ownable, ReentrancyGuard {
         if (!saleOpen) revert SaleClosed();
         if (quantity == 0 || quantity > MAX_MINT_PER_TX) revert InvalidQuantity();
         if (msg.value != MINT_PRICE * quantity) revert IncorrectPayment();
+        if (nft.nextTokenId() - 1 + quantity > saleCap) revert SaleCapReached();
 
         for (uint256 i; i < quantity; ++i) {
             uint256 tokenId = nft.mintGenesis(msg.sender);
@@ -142,6 +150,21 @@ contract Fuse is Ownable, ReentrancyGuard {
 
     function setSaleOpen(bool open) external onlyOwner {
         saleOpen = open;
+    }
+
+    /// @notice 開放する上限を引き上げる。引き下げは不可。
+    /// @dev 買った後に上限を下げられると、残り枚数の表示が信用できなくなる。
+    function setSaleCap(uint256 cap) external onlyOwner {
+        if (cap < saleCap) revert CapCannotShrink();
+        if (cap > nft.GENESIS_SUPPLY()) cap = nft.GENESIS_SUPPLY();
+        saleCap = cap;
+        emit SaleCapSet(cap);
+    }
+
+    /// @notice いま買える残り枚数。
+    function mintableLeft() external view returns (uint256) {
+        uint256 minted = nft.nextTokenId() - 1;
+        return minted >= saleCap ? 0 : saleCap - minted;
     }
 
     /// @notice Genesisのfamilyを2bitずつ詰めた値を入れる。販売開始前に1回だけ。

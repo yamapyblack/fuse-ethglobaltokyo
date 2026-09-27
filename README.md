@@ -16,6 +16,9 @@ An NFT gacha: lock two away for good, an AI fuses them into one. Rerolling burns
 
 **Genesis.** 1,000 pieces at 0.05 ETH: 13 creatures, 13 sushi and 13 Japanese lucky charms.
 Every Genesis piece has the same Umami of 50, so nothing about the mint is a better or worse draw.
+The sale opens in batches — `saleCap` starts at zero and the owner raises it, so a batch that sells
+out is a batch that sold out, rather than a thousand pieces sitting unsold on chain. The cap can
+only ever go up.
 
 **Fusing.** Pick two NFTs you own and pay 0.005 ETH. Both parents spend one of their three fusion
 charges, and a new child is minted to you. When a piece spends its third charge it is burned in the
@@ -167,8 +170,8 @@ forge script script/Deploy.s.sol:Deploy --rpc-url https://sepolia.base.org --bro
 
 ```bash
 cd web
-pnpm setup:genesis              # writes the eight words and verifies them against genesis.json
-OPEN_SALE=1 pnpm setup:genesis  # only once the verification passes
+pnpm setup:genesis                            # writes the eight words and verifies them
+SALE_CAP=200 OPEN_SALE=1 pnpm setup:genesis   # only once the verification passes
 ```
 
 Do not skip the verification. If the families are not loaded, every Genesis piece reads as Creature

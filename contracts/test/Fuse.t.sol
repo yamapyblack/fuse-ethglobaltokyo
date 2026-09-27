@@ -34,7 +34,18 @@ contract FuseTest is Test {
 
     // --- helpers ---
 
+    /// 上限は本題でないテストのために、足りなければ自動で引き上げる
     function _mint(address to, uint256 qty) internal {
+        uint256 need = nft.nextTokenId() - 1 + qty;
+        if (fuse.saleCap() < need) {
+            vm.prank(owner);
+            fuse.setSaleCap(need);
+        }
+        _mintRaw(to, qty);
+    }
+
+    /// 上限に触らずに買う。上限そのものを検証するテスト用。
+    function _mintRaw(address to, uint256 qty) internal {
         vm.prank(to);
         fuse.mintGenesis{value: PRICE * qty}(qty);
     }
@@ -405,5 +416,54 @@ contract FuseTest is Test {
         _finalize(child, "u1");
         (uint256 grandchild,) = _fuse(alice, child, 3);
         assertEq(fuse.generationOf(grandchild), 2);
+    }
+
+    // --- 販売上限 ---
+
+    function test_saleCap_blocksBeyondCap() public {
+        vm.prank(owner);
+        fuse.setSaleCap(3);
+        assertEq(fuse.mintableLeft(), 3);
+
+        _mintRaw(alice, 3);
+        assertEq(fuse.mintableLeft(), 0);
+
+        vm.prank(bob);
+        vm.expectRevert(Fuse.SaleCapReached.selector);
+        fuse.mintGenesis{value: PRICE}(1);
+    }
+
+    function test_saleCap_canBeRaised() public {
+        vm.prank(owner);
+        fuse.setSaleCap(2);
+        _mintRaw(alice, 2);
+
+        vm.prank(owner);
+        fuse.setSaleCap(5);
+        assertEq(fuse.mintableLeft(), 3);
+        _mintRaw(bob, 3);
+        assertEq(nft.totalSupply(), 5);
+    }
+
+    /// 買った後に上限を下げられると、残り枚数の表示が信用できなくなる
+    function test_saleCap_cannotShrink() public {
+        vm.startPrank(owner);
+        fuse.setSaleCap(5);
+        vm.expectRevert(Fuse.CapCannotShrink.selector);
+        fuse.setSaleCap(4);
+        vm.stopPrank();
+    }
+
+    function test_saleCap_clampsToGenesisSupply() public {
+        vm.prank(owner);
+        fuse.setSaleCap(99999);
+        assertEq(fuse.saleCap(), nft.GENESIS_SUPPLY());
+    }
+
+    /// 上限を開けていなければ1体も売れない
+    function test_saleCap_defaultsToZero() public {
+        vm.prank(owner);
+        Fuse fresh = new Fuse(nft, backend, owner);
+        assertEq(fresh.saleCap(), 0);
     }
 }

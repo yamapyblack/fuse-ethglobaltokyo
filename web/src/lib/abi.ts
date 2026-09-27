@@ -397,6 +397,19 @@ export const fuseAbi = [
   },
   {
     "type": "function",
+    "name": "mintableLeft",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "nextRequestId",
     "inputs": [],
     "outputs": [
@@ -467,6 +480,19 @@ export const fuseAbi = [
   },
   {
     "type": "function",
+    "name": "saleCap",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "saleOpen",
     "inputs": [],
     "outputs": [
@@ -504,6 +530,19 @@ export const fuseAbi = [
         "name": "metadataSigner_",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setSaleCap",
+    "inputs": [
+      {
+        "name": "cap",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "outputs": [],
@@ -802,8 +841,26 @@ export const fuseAbi = [
     "anonymous": false
   },
   {
+    "type": "event",
+    "name": "SaleCapSet",
+    "inputs": [
+      {
+        "name": "cap",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
     "type": "error",
     "name": "AlreadyBurned",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CapCannotShrink",
     "inputs": []
   },
   {
@@ -875,12 +932,22 @@ export const fuseAbi = [
   },
   {
     "type": "error",
+    "name": "ParentNotReady",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "ReentrancyGuardReentrantCall",
     "inputs": []
   },
   {
     "type": "error",
     "name": "RemintLimitReached",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SaleCapReached",
     "inputs": []
   },
   {

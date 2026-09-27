@@ -31,9 +31,16 @@ export function MintView({ mintTx }: { mintTx: string | null }) {
     functionName: "nextTokenId",
     query: { refetchInterval: 8000 },
   });
+  /// 段階的に開放するので「いま買える残り」を出す。全体の残りではない。
+  const mintable = useReadContract({
+    address: FUSE_ADDRESS,
+    abi: fuseAbi,
+    functionName: "mintableLeft",
+    query: { refetchInterval: 8000 },
+  });
 
   const sold = nextId.data ? Math.min(Number(nextId.data) - 1, GENESIS_SUPPLY) : 0;
-  const left = GENESIS_SUPPLY - sold;
+  const left = mintable.data === undefined ? 0 : Number(mintable.data);
   const ready = isConnected && chainId === baseSepolia.id;
   const busy = step !== null;
 
@@ -93,7 +100,7 @@ export function MintView({ mintTx }: { mintTx: string | null }) {
             </span>
           </div>
           <div>
-            <span>Remaining</span>
+            <span>Available now</span>
             <span>{left}</span>
           </div>
         </div>
@@ -105,7 +112,7 @@ export function MintView({ mintTx }: { mintTx: string | null }) {
         ) : saleOpen.data === false ? (
           <p className="note">The sale is not open yet.</p>
         ) : left === 0 ? (
-          <p className="note">Sold out.</p>
+          <p className="note">This batch is sold out. The next one opens soon.</p>
         ) : (
           <>
             <div className="row" style={{ justifyContent: "center", gap: 14 }}>
@@ -163,6 +170,6 @@ function toMessage(e: unknown): string {
   const raw = e instanceof Error ? e.message : String(e);
   if (/User rejected|User denied/i.test(raw)) return "Rejected in your wallet.";
   if (/SaleClosed/i.test(raw)) return "The sale is not open.";
-  if (/GenesisSoldOut/i.test(raw)) return "Sold out.";
+  if (/GenesisSoldOut|SaleCapReached/i.test(raw)) return "This batch is sold out.";
   return raw.split("\n")[0];
 }

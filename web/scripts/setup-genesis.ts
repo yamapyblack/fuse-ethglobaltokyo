@@ -80,6 +80,19 @@ async function main() {
   }
   if (bad > 0) throw new Error(`${bad} 件が不一致。販売を開始しないこと`);
 
+  const cap = Number(process.env.SALE_CAP ?? 0);
+  if (cap > 0) {
+    const hash = await wallet.writeContract({
+      address: fuseAddress,
+      abi: fuseAbi,
+      functionName: "setSaleCap",
+      args: [BigInt(cap)],
+      nonce: nonce++,
+    });
+    await publicClient.waitForTransactionReceipt({ hash });
+    console.log(`\n販売上限を ${cap} に設定しました  ${hash}`);
+  }
+
   if (process.env.OPEN_SALE === "1") {
     const hash = await wallet.writeContract({
       address: fuseAddress,
@@ -91,7 +104,7 @@ async function main() {
     await publicClient.waitForTransactionReceipt({ hash });
     console.log(`\n販売を開始しました  ${hash}`);
   } else {
-    console.log("\nfamily の投入が完了しました。販売開始は OPEN_SALE=1 を付けて再実行してください。");
+    console.log("\nfamily の投入が完了しました。販売開始は SALE_CAP=200 OPEN_SALE=1 を付けて再実行してください。");
   }
 }
 
