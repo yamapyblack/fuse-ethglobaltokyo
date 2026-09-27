@@ -8,7 +8,8 @@
     "typecheck": "tsc --noEmit",
     "check:r2": "tsx scripts/check-r2.ts",
     "gen:icon": "tsx scripts/gen-icon.ts",
-    "gen:genesis": "tsx scripts/gen-genesis.ts"
+    "gen:genesis": "tsx scripts/gen-genesis.ts",
+    "setup:genesis": "tsx scripts/setup-genesis.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1141.0",

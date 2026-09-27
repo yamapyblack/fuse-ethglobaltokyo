@@ -2,6 +2,7 @@ import { readChildInfo, readTokenUri, finalizeMetadata, type ChildInfo } from ".
 import { imageKeyOf, keys } from "./keys";
 import { generateFusedImage } from "./openai";
 import { buildChildPrompt } from "./prompt";
+import { umamiFromSeed } from "./traits";
 import { exists, getBuffer, put, publicUrl, putJson } from "./r2";
 import { GENESIS_SUPPLY } from "./config";
 import { claimLock, loadState, MAX_ATTEMPTS, saveState, type RequestState } from "./state";
@@ -81,20 +82,41 @@ async function ensureImage(tokenId: bigint, info: ChildInfo): Promise<string> {
 
 async function ensureMetadata(tokenId: bigint, info: ChildInfo, imageUrl: string): Promise<string> {
   const { traits } = buildChildPrompt(info.seed);
+  const umami = umamiFromSeed(info.seed);
+  const engimonoBps = 10000 - info.creatureBps - info.sushiBps;
+  const pct = (bps: number) => Math.round(bps / 100);
+
+  const lineage = (
+    [
+      ["Creature", info.creatureBps],
+      ["Sushi", info.sushiBps],
+      ["Engimono", engimonoBps],
+    ] as const
+  ).filter(([, bps]) => bps > 0);
+  // 最も比率の高いファミリー。同率なら Mixed
+  const top = [...lineage].sort((a, b) => b[1] - a[1]);
+  const family = top.length > 1 && top[0][1] === top[1][1] ? "Mixed" : top[0][0];
+
   const metadata = {
     name: `Fuse #${tokenId}`,
     description:
       `Fused from #${info.parentA} and #${info.parentB}. ` +
-      `Both parents are locked in the pool forever. This one can be burned and reminted.`,
+      `Each piece can be used in three fusions before it is burned.`,
     image: imageUrl,
+    // 配合の残り回数はここに書かない。tokenURIは確定後に変更できないので、
+    // 変動する値を載せると必ず古くなる。残り回数はチェーンから読むこと。
     attributes: [
-      { trait_type: "Parent A", value: `#${info.parentA}` },
-      { trait_type: "Parent B", value: `#${info.parentB}` },
-      { trait_type: "Remint Count", value: Number(info.remintCount) },
+      { trait_type: "Generation", value: info.generation, display_type: "number" },
+      { trait_type: "Family", value: family },
+      { trait_type: "Lineage", value: lineage.map(([n, b]) => `${n} ${pct(b)}%`).join(" / ") },
+      { trait_type: "Umami", value: umami, display_type: "number", max_value: 100 },
       { trait_type: "Mood", value: traits.mood },
       { trait_type: "Accent", value: traits.accent },
       { trait_type: "Charm", value: traits.charm },
       { trait_type: "Pose", value: traits.pose },
+      { trait_type: "Parent A", value: `#${info.parentA}` },
+      { trait_type: "Parent B", value: `#${info.parentB}` },
+      { trait_type: "Remint Count", value: info.remintCount, display_type: "number" },
       { trait_type: "Seed", value: `0x${info.seed.toString(16)}` },
     ],
   };
