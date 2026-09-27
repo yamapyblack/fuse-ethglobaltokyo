@@ -43,8 +43,19 @@ async function main() {
   let entries: { id: number; load: () => Promise<Buffer> }[];
 
   if (dir) {
-    const files = (await readdir(dir)).filter((f) => f.endsWith(".png"));
-    entries = files.map((f) => ({
+    const files = await readdir(dir).catch((e) => {
+      console.error(`DIR に指定したディレクトリが見つかりません: ${dir}`);
+      console.error("");
+      console.error("  手元にダウンロード済みのものを検査:  DIR=./genesis-local/images pnpm verify:genesis");
+      console.error("  R2上のものを検査 (DIRを付けない)   :  pnpm verify:genesis");
+      throw e;
+    });
+    const pngs = files.filter((f) => f.endsWith(".png"));
+    if (pngs.length === 0) {
+      console.error(`${dir} に .png がありません`);
+      process.exit(1);
+    }
+    entries = pngs.map((f) => ({
       id: Number(f.replace(".png", "")),
       load: () => readFile(`${dir}/${f}`),
     }));
