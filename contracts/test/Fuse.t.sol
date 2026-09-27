@@ -16,7 +16,7 @@ contract FuseTest is Test {
     address alice = makeAddr("alice");
     address bob = makeAddr("bob");
 
-    uint256 constant PRICE = 0.1 ether;
+    uint256 constant PRICE = 0.05 ether;
     uint256 constant FEE = 0.005 ether;
 
     function setUp() public {

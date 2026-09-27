@@ -14,7 +14,7 @@ An NFT gacha: lock two away for good, an AI fuses them into one. Rerolling burns
 
 ## The rules
 
-**Genesis.** 1,000 pieces at 0.1 ETH: 13 creatures, 13 sushi and 13 Japanese lucky charms.
+**Genesis.** 1,000 pieces at 0.05 ETH: 13 creatures, 13 sushi and 13 Japanese lucky charms.
 Every Genesis piece has the same Umami of 50, so nothing about the mint is a better or worse draw.
 
 **Fusing.** Pick two NFTs you own and pay 0.005 ETH. Both parents spend one of their three fusion
@@ -65,7 +65,7 @@ Three separate authorities:
 
 - **owner** (deploy key): opens the sale, sets the Genesis families, withdraws, rotates the metadata signer
 - **metadataSigner** (backend key): `finalizeMetadata` only. It cannot mint, burn or withdraw
-- **anyone**: mint at 0.1 ETH, fuse at 0.005 ETH, remint for free
+- **anyone**: mint at 0.05 ETH, fuse at 0.005 ETH, remint for free
 
 ### Attributes are derived, not stored
 

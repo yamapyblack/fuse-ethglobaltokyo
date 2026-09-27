@@ -33,7 +33,7 @@ contract Fuse is Ownable, ReentrancyGuard {
     /// @notice Genesisのumamiは全体で同じ。販売時点で数値の当たり外れを作らないため。
     uint8 public constant GENESIS_UMAMI = 50;
 
-    uint256 public constant MINT_PRICE = 0.1 ether;
+    uint256 public constant MINT_PRICE = 0.05 ether;
     uint256 public constant FUSE_FEE = 0.005 ether;
     uint256 public constant MAX_MINT_PER_TX = 10;
 

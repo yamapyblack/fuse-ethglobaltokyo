@@ -8,7 +8,7 @@ export const FUSE_ADDRESS = (process.env.NEXT_PUBLIC_FUSE_ADDRESS ?? "0x") as `0
 export const FUSE_NFT_ADDRESS = (process.env.NEXT_PUBLIC_FUSE_NFT_ADDRESS ?? "0x") as `0x${string}`;
 
 /// Fuse.sol の定数と一致させる。コントラクトは msg.value の完全一致を要求する。
-export const MINT_PRICE_WEI = 100_000_000_000_000_000n; // 0.1 ETH
+export const MINT_PRICE_WEI = 50_000_000_000_000_000n; // 0.05 ETH
 export const FUSE_FEE_WEI = 5_000_000_000_000_000n; // 0.005 ETH
 /// Remintは無料。
 export const REMINT_FEE_WEI = 0n;
