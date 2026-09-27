@@ -10,11 +10,6 @@ export const fuseAbi = [
         "internalType": "contract FuseNFT"
       },
       {
-        "name": "pool_",
-        "type": "address",
-        "internalType": "contract FusePool"
-      },
-      {
         "name": "metadataSigner_",
         "type": "address",
         "internalType": "address"
@@ -29,7 +24,46 @@ export const fuseAbi = [
   },
   {
     "type": "function",
-    "name": "FEE",
+    "name": "FUSE_CHARGES",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "FUSE_FEE",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "GENESIS_UMAMI",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MAX_MINT_PER_TX",
     "inputs": [],
     "outputs": [
       {
@@ -47,8 +81,86 @@ export const fuseAbi = [
     "outputs": [
       {
         "name": "",
-        "type": "uint32",
-        "internalType": "uint32"
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MINT_PRICE",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "attributesOf",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "a",
+        "type": "tuple",
+        "internalType": "struct Fuse.Attributes",
+        "components": [
+          {
+            "name": "generation",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "umami",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "creatureBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "sushiBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "engimonoBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "chargesLeft",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "uint8"
       }
     ],
     "stateMutability": "view"
@@ -67,22 +179,47 @@ export const fuseAbi = [
       {
         "name": "",
         "type": "tuple",
-        "internalType": "struct Fuse.ChildInfo",
+        "internalType": "struct Fuse.Child",
         "components": [
           {
-            "name": "parentCollection",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
             "name": "parentA",
-            "type": "uint256",
-            "internalType": "uint256"
+            "type": "uint32",
+            "internalType": "uint32"
           },
           {
             "name": "parentB",
-            "type": "uint256",
-            "internalType": "uint256"
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "prevTokenId",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "generation",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "remintCount",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "creatureBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "sushiBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "state",
+            "type": "uint8",
+            "internalType": "enum Fuse.GenState"
           },
           {
             "name": "requestId",
@@ -93,23 +230,37 @@ export const fuseAbi = [
             "name": "seed",
             "type": "uint256",
             "internalType": "uint256"
-          },
-          {
-            "name": "prevChildTokenId",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "remintCount",
-            "type": "uint32",
-            "internalType": "uint32"
-          },
-          {
-            "name": "state",
-            "type": "uint8",
-            "internalType": "enum Fuse.GenState"
           }
         ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "familyBpsOf",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "creature",
+        "type": "uint16",
+        "internalType": "uint16"
+      },
+      {
+        "name": "sushi",
+        "type": "uint16",
+        "internalType": "uint16"
+      },
+      {
+        "name": "engimono",
+        "type": "uint16",
+        "internalType": "uint16"
       }
     ],
     "stateMutability": "view"
@@ -163,6 +314,63 @@ export const fuseAbi = [
   },
   {
     "type": "function",
+    "name": "fusesUsed",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "used",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "generationOf",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "genesisFamily",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "enum Fuse.Family"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "metadataSigner",
     "inputs": [],
     "outputs": [
@@ -173,6 +381,19 @@ export const fuseAbi = [
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "mintGenesis",
+    "inputs": [
+      {
+        "name": "quantity",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
   },
   {
     "type": "function",
@@ -215,19 +436,6 @@ export const fuseAbi = [
   },
   {
     "type": "function",
-    "name": "pool",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "contract FusePool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "remint",
     "inputs": [
       {
@@ -259,12 +467,56 @@ export const fuseAbi = [
   },
   {
     "type": "function",
+    "name": "saleOpen",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "setGenesisFamilies",
+    "inputs": [
+      {
+        "name": "wordIndex",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "word",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setMetadataSigner",
     "inputs": [
       {
         "name": "metadataSigner_",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setSaleOpen",
+    "inputs": [
+      {
+        "name": "open",
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "outputs": [],
@@ -291,6 +543,47 @@ export const fuseAbi = [
   },
   {
     "type": "function",
+    "name": "traitsOf",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "t",
+        "type": "tuple",
+        "internalType": "struct Fuse.Traits",
+        "components": [
+          {
+            "name": "mood",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "accent",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "charm",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "pose",
+            "type": "uint8",
+            "internalType": "uint8"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "transferOwnership",
     "inputs": [
       {
@@ -304,7 +597,26 @@ export const fuseAbi = [
   },
   {
     "type": "function",
-    "name": "withdrawFees",
+    "name": "umamiOf",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "withdraw",
     "inputs": [
       {
         "name": "to",
@@ -360,6 +672,25 @@ export const fuseAbi = [
   },
   {
     "type": "event",
+    "name": "GenesisMinted",
+    "inputs": [
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "MetadataFinalized",
     "inputs": [
       {
@@ -385,19 +716,6 @@ export const fuseAbi = [
   },
   {
     "type": "event",
-    "name": "MetadataSignerSet",
-    "inputs": [
-      {
-        "name": "metadataSigner",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
     "name": "OwnershipTransferred",
     "inputs": [
       {
@@ -411,6 +729,31 @@ export const fuseAbi = [
         "type": "address",
         "indexed": true,
         "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ParentConsumed",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "usedTotal",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "burned",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
       }
     ],
     "anonymous": false
@@ -444,18 +787,6 @@ export const fuseAbi = [
         "internalType": "uint256"
       },
       {
-        "name": "parentA",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "parentB",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
         "name": "seed",
         "type": "uint256",
         "indexed": false,
@@ -463,9 +794,9 @@ export const fuseAbi = [
       },
       {
         "name": "remintCount",
-        "type": "uint32",
+        "type": "uint8",
         "indexed": false,
-        "internalType": "uint32"
+        "internalType": "uint8"
       }
     ],
     "anonymous": false
@@ -482,7 +813,22 @@ export const fuseAbi = [
   },
   {
     "type": "error",
-    "name": "IncorrectFee",
+    "name": "GenesisTraitsAreOffchain",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "IncorrectPayment",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidQuantity",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NoChargesLeft",
     "inputs": []
   },
   {
@@ -492,17 +838,12 @@ export const fuseAbi = [
   },
   {
     "type": "error",
-    "name": "NotChildOwner",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "NotMetadataSigner",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "NotParentOwner",
+    "name": "NotOwner",
     "inputs": []
   },
   {
@@ -544,6 +885,11 @@ export const fuseAbi = [
   },
   {
     "type": "error",
+    "name": "SaleClosed",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "SameParent",
     "inputs": []
   },
@@ -567,9 +913,37 @@ export const fuseNftAbi = [
         "name": "initialOwner",
         "type": "address",
         "internalType": "address"
+      },
+      {
+        "name": "genesisBaseURI_",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "royaltyReceiver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "royaltyBps",
+        "type": "uint96",
+        "internalType": "uint96"
       }
     ],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "GENESIS_SUPPLY",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -610,7 +984,7 @@ export const fuseNftAbi = [
   },
   {
     "type": "function",
-    "name": "burnChild",
+    "name": "burn",
     "inputs": [
       {
         "name": "tokenId",
@@ -698,17 +1072,12 @@ export const fuseNftAbi = [
   },
   {
     "type": "function",
-    "name": "mintMaterial",
+    "name": "mintGenesis",
     "inputs": [
       {
         "name": "to",
         "type": "address",
         "internalType": "address"
-      },
-      {
-        "name": "uri",
-        "type": "string",
-        "internalType": "string"
       }
     ],
     "outputs": [
@@ -784,6 +1153,35 @@ export const fuseNftAbi = [
     "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "royaltyInfo",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "salePrice",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -874,12 +1272,43 @@ export const fuseNftAbi = [
   },
   {
     "type": "function",
+    "name": "setDefaultRoyalty",
+    "inputs": [
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "bps",
+        "type": "uint96",
+        "internalType": "uint96"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setFuseContract",
     "inputs": [
       {
         "name": "fuseContract_",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setGenesisBaseURI",
+    "inputs": [
+      {
+        "name": "baseURI_",
+        "type": "string",
+        "internalType": "string"
       }
     ],
     "outputs": [],
@@ -1099,25 +1528,6 @@ export const fuseNftAbi = [
   },
   {
     "type": "event",
-    "name": "BatchMetadataUpdate",
-    "inputs": [
-      {
-        "name": "_fromTokenId",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "_toTokenId",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
     "name": "FuseContractSet",
     "inputs": [
       {
@@ -1131,13 +1541,13 @@ export const fuseNftAbi = [
   },
   {
     "type": "event",
-    "name": "MetadataUpdate",
+    "name": "GenesisBaseURISet",
     "inputs": [
       {
-        "name": "_tokenId",
-        "type": "uint256",
+        "name": "baseURI",
+        "type": "string",
         "indexed": false,
-        "internalType": "uint256"
+        "internalType": "string"
       }
     ],
     "anonymous": false
@@ -1185,6 +1595,70 @@ export const fuseNftAbi = [
       }
     ],
     "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "ERC2981InvalidDefaultRoyalty",
+    "inputs": [
+      {
+        "name": "numerator",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "denominator",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ERC2981InvalidDefaultRoyaltyReceiver",
+    "inputs": [
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ERC2981InvalidTokenRoyalty",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "numerator",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "denominator",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ERC2981InvalidTokenRoyaltyReceiver",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",
@@ -1313,6 +1787,16 @@ export const fuseNftAbi = [
   {
     "type": "error",
     "name": "FuseContractAlreadySet",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "GenesisSoldOut",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NonexistentToken",
     "inputs": []
   },
   {

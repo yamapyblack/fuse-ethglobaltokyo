@@ -20,8 +20,8 @@ export async function GET(req: Request) {
     const [maxRemints, image, parentA, parentB] = await Promise.all([
       readMaxRemints(),
       tokenUri ? resolveImageUrl(tokenId) : Promise.resolve(null),
-      resolveImageUrl(info.parentA, true),
-      resolveImageUrl(info.parentB, true),
+      resolveImageUrl(BigInt(info.parentA), true),
+      resolveImageUrl(BigInt(info.parentB), true),
     ]);
 
     return Response.json(
@@ -31,7 +31,7 @@ export async function GET(req: Request) {
         requestId: info.requestId.toString(),
         remintCount: Number(info.remintCount),
         maxRemints,
-        prevChildTokenId: info.prevChildTokenId.toString(),
+        prevTokenId: info.prevTokenId.toString(),
         seed: `0x${info.seed.toString(16)}`,
         parents: [
           { tokenId: info.parentA.toString(), image: parentA },

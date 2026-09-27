@@ -5,16 +5,19 @@ import { chain, FUSE_ADDRESS, FUSE_NFT_ADDRESS, RPC_URL } from "./config";
 
 export const publicClient = createPublicClient({ chain, transport: http(RPC_URL) });
 
+/// Fuse.sol の Child 構造体。uint32 は number、uint256 は bigint で返る。
 export type ChildInfo = {
-  parentCollection: `0x${string}`;
-  parentA: bigint;
-  parentB: bigint;
-  requestId: bigint;
-  seed: bigint;
-  prevChildTokenId: bigint;
+  parentA: number;
+  parentB: number;
+  prevTokenId: number;
+  generation: number;
   remintCount: number;
+  creatureBps: number;
+  sushiBps: number;
   /// 0:None 1:Pending 2:Ready 3:Burned
   state: number;
+  requestId: bigint;
+  seed: bigint;
 };
 
 export async function readChildInfo(tokenId: bigint): Promise<ChildInfo> {

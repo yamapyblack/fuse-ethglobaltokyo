@@ -6,6 +6,8 @@ export type OwnedToken = {
   name: string | null;
   /// tokenURI未設定 = 画像生成待ちの子NFT
   pending: boolean;
+  /// 残りの配合回数。0になった時点でburnされるので、1のものは次で消える。
+  chargesLeft: number | null;
 };
 
 export function NftCard({
@@ -36,7 +38,13 @@ export function NftCard({
       )}
       <div className="nft-id">
         <span>#{token.tokenId.toString()}</span>
-        {token.name ? <span className="pill">{token.name}</span> : null}
+        {token.chargesLeft !== null ? (
+          <span className="pill" data-warn={token.chargesLeft === 1}>
+            {token.chargesLeft === 1 ? "last fuse" : `${token.chargesLeft} left`}
+          </span>
+        ) : token.name ? (
+          <span className="pill">{token.name}</span>
+        ) : null}
       </div>
       {selected ? <span className="check">✓</span> : null}
     </button>

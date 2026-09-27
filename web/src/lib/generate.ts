@@ -70,8 +70,8 @@ async function ensureImage(tokenId: bigint, info: ChildInfo): Promise<string> {
   if (await exists(key)) return publicUrl(key);
 
   const parents = await Promise.all([
-    snapshotParent(info.parentA),
-    snapshotParent(info.parentB),
+    snapshotParent(BigInt(info.parentA)),
+    snapshotParent(BigInt(info.parentB)),
   ]);
   const { prompt } = buildChildPrompt(info.seed);
   const image = await generateFusedImage(parents, prompt);

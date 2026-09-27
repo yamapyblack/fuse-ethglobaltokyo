@@ -4,11 +4,11 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { parseEventLogs } from "viem";
 import { useAccount } from "wagmi";
-import { readContract, waitForTransactionReceipt, writeContract } from "wagmi/actions";
+import { waitForTransactionReceipt, writeContract } from "wagmi/actions";
 import { baseSepolia } from "wagmi/chains";
 import { NftCard } from "@/components/NftCard";
-import { fuseAbi, fuseNftAbi } from "@/lib/abi";
-import { EXPLORER, FEE_WEI, FUSE_ADDRESS, FUSE_NFT_ADDRESS, isConfigured } from "@/lib/config";
+import { fuseAbi } from "@/lib/abi";
+import { EXPLORER, FUSE_ADDRESS, FUSE_FEE_WEI, isConfigured } from "@/lib/config";
 import { useOwnedTokens } from "@/lib/useOwnedTokens";
 import { wagmiConfig } from "@/lib/wagmi";
 
@@ -34,37 +34,18 @@ export default function SelectPage() {
     });
   }
 
-  /// 承認 → 配合 を1本の流れで通す。
-  /// 承認は setApprovalForAll なので初回の1txだけ。2回目以降の配合では省略される。
+  /// v2では親を転送しないので、approve も setApprovalForAll も要らない。1txで完結する。
   async function handleFuse() {
     if (selected.length !== 2 || !address) return;
     setError(null);
     try {
-      const approved = await readContract(wagmiConfig, {
-        address: FUSE_NFT_ADDRESS,
-        abi: fuseNftAbi,
-        functionName: "isApprovedForAll",
-        args: [address, FUSE_ADDRESS],
-      });
-      if (!approved) {
-        setStep({ label: "Approving…" });
-        const hash = await writeContract(wagmiConfig, {
-          address: FUSE_NFT_ADDRESS,
-          abi: fuseNftAbi,
-          functionName: "setApprovalForAll",
-          args: [FUSE_ADDRESS, true],
-        });
-        setStep({ label: "Approving…", hash });
-        await waitForTransactionReceipt(wagmiConfig, { hash });
-      }
-
       setStep({ label: "Minting…" });
       const hash = await writeContract(wagmiConfig, {
         address: FUSE_ADDRESS,
         abi: fuseAbi,
         functionName: "fuse",
         args: [selected[0], selected[1]],
-        value: FEE_WEI,
+        value: FUSE_FEE_WEI,
       });
       setStep({ label: "Minting…", hash });
       const receipt = await waitForTransactionReceipt(wagmiConfig, { hash });
@@ -95,9 +76,9 @@ export default function SelectPage() {
     <main>
       <h1>Pick two parents</h1>
       <p className="lead">
-        The two you pick are locked in the pool forever, and an AI fuses them into one new NFT.
+        Each parent can be used in three fusions. On the third it is burned for good.
         <br />
-        0.001 ETH + gas.
+        0.005 ETH + gas.
       </p>
 
       {!ready ? (
@@ -155,7 +136,7 @@ export default function SelectPage() {
                     View transaction on BaseScan ↗
                   </a>
                 ) : (
-                  "0.001 ETH + gas / parents never come back"
+                  "0.005 ETH + gas / each parent has 3 fusions before it burns"
                 )}
               </div>
             </div>

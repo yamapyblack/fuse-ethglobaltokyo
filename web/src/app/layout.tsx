@@ -21,7 +21,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <img className="logo-mark" src="/logo.png" alt="" />
                 Fuse
               </Link>
-              <ConnectButton />
+              <div className="row" style={{ gap: 12 }}>
+                <Link href="/mint" className="navlink">
+                  Mint
+                </Link>
+                <ConnectButton />
+              </div>
             </header>
             {children}
           </div>

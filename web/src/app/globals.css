@@ -152,6 +152,12 @@ h1 {
   border: 1px solid var(--line);
 }
 
+.pill[data-warn="true"] {
+  background: #fff1f6;
+  color: var(--danger);
+  border-color: var(--pink);
+}
+
 .check {
   position: absolute;
   top: 14px;
@@ -369,6 +375,20 @@ button:disabled {
 
 a {
   color: var(--lavender-deep);
+}
+
+.navlink {
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.navlink:hover {
+  background: var(--lavender-soft);
 }
 
 .center {

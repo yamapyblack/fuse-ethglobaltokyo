@@ -7,8 +7,13 @@ export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? "https://sepolia.base.
 export const FUSE_ADDRESS = (process.env.NEXT_PUBLIC_FUSE_ADDRESS ?? "0x") as `0x${string}`;
 export const FUSE_NFT_ADDRESS = (process.env.NEXT_PUBLIC_FUSE_NFT_ADDRESS ?? "0x") as `0x${string}`;
 
-/// Fuse.FEE と一致させる。コントラクト側は msg.value の完全一致を要求する。
-export const FEE_WEI = 1_000_000_000_000_000n; // 0.001 ETH
+/// Fuse.sol の定数と一致させる。コントラクトは msg.value の完全一致を要求する。
+export const MINT_PRICE_WEI = 100_000_000_000_000_000n; // 0.1 ETH
+export const FUSE_FEE_WEI = 5_000_000_000_000_000n; // 0.005 ETH
+/// Remintは無料。
+export const REMINT_FEE_WEI = 0n;
+export const GENESIS_SUPPLY = 1000;
+export const MAX_MINT_PER_TX = 10;
 
 export const EXPLORER = "https://sepolia.basescan.org";
 

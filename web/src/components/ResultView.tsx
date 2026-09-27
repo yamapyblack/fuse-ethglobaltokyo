@@ -7,7 +7,7 @@ import { parseEventLogs } from "viem";
 import { useAccount } from "wagmi";
 import { waitForTransactionReceipt, writeContract } from "wagmi/actions";
 import { fuseAbi } from "@/lib/abi";
-import { EXPLORER, FEE_WEI, FUSE_ADDRESS, MAX_ATTEMPTS } from "@/lib/config";
+import { EXPLORER, FUSE_ADDRESS, MAX_ATTEMPTS, REMINT_FEE_WEI } from "@/lib/config";
 import { wagmiConfig } from "@/lib/wagmi";
 
 type Status = {
@@ -97,7 +97,7 @@ export function ResultView({ tokenId, fuseTx }: { tokenId: string; fuseTx: strin
         abi: fuseAbi,
         functionName: "remint",
         args: [BigInt(tokenId)],
-        value: FEE_WEI,
+        value: REMINT_FEE_WEI,
       });
       setRemintTx(hash);
       const receipt = await waitForTransactionReceipt(wagmiConfig, { hash });
@@ -284,7 +284,7 @@ export function ResultView({ tokenId, fuseTx }: { tokenId: string; fuseTx: strin
           disabled={generating || reminting || !isConnected || remintsLeft === 0}
           onClick={() => setConfirming(true)}
         >
-          {reminting ? "Reminting…" : "Remint (0.001 ETH)"}
+          {reminting ? "Reminting…" : "Remint (free)"}
         </button>
       </div>
       {generating ? (
@@ -313,7 +313,7 @@ export function ResultView({ tokenId, fuseTx }: { tokenId: string; fuseTx: strin
               consumed again.
             </div>
             <p className="note">
-              0.001 ETH + gas. No side-by-side comparison, no undo. {remintsLeft} of{" "}
+              Free apart from gas. No side-by-side comparison, no undo. {remintsLeft} of{" "}
               {status.maxRemints} remints left.
             </p>
             <div className="modal-actions">
