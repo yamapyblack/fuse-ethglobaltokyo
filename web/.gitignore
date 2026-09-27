@@ -7,3 +7,6 @@ scripts/materials.json
 # 生成物ではなく確定した割り当て表なのでコミットする
 !scripts/genesis.json
 tsconfig.tsbuildinfo
+
+# R2から落としたGenesis画像。1枚1MB前後あるのでリポジトリには入れない
+genesis-local/

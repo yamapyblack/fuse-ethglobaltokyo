@@ -9,6 +9,10 @@
     "check:r2": "tsx scripts/check-r2.ts",
     "gen:icon": "tsx scripts/gen-icon.ts",
     "gen:genesis": "tsx scripts/gen-genesis.ts",
+    "list:genesis": "tsx scripts/list-genesis.ts",
+    "download:genesis": "tsx scripts/download-genesis.ts",
+    "verify:genesis": "tsx scripts/verify-genesis.ts",
+    "export:missing": "tsx scripts/export-missing.ts",
     "setup:genesis": "tsx scripts/setup-genesis.ts"
   },
   "dependencies": {
