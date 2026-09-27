@@ -392,4 +392,18 @@ contract FuseTest is Test {
             _finalize(child, "u");
         }
     }
+
+    /// 生成中の子を親にできない。画像がまだ無く、配合しても生成が詰む
+    function test_fuse_revertsWhenParentIsStillGenerating() public {
+        _mint(alice, 3);
+        (uint256 child,) = _fuse(alice, 1, 2);
+        // child は Pending のまま
+        vm.prank(alice);
+        vm.expectRevert(Fuse.ParentNotReady.selector);
+        fuse.fuse{value: FEE}(child, 3);
+
+        _finalize(child, "u1");
+        (uint256 grandchild,) = _fuse(alice, child, 3);
+        assertEq(fuse.generationOf(grandchild), 2);
+    }
 }

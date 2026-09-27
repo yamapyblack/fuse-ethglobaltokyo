@@ -90,6 +90,7 @@ contract Fuse is Ownable, ReentrancyGuard {
     error SameParent();
     error NotOwner();
     error NoChargesLeft();
+    error ParentNotReady();
     error NotChild();
     error GenerationInProgress();
     error AlreadyBurned();
@@ -162,6 +163,10 @@ contract Fuse is Ownable, ReentrancyGuard {
         if (msg.value != FUSE_FEE) revert IncorrectPayment();
         if (parentA == parentB) revert SameParent();
         if (nft.ownerOf(parentA) != msg.sender || nft.ownerOf(parentB) != msg.sender) revert NotOwner();
+        // 生成中の子は親にできない。画像がまだ無いので、配合してもバックエンドが
+        // 親画像を引けず永久にPendingのままになる。
+        if (_children[parentA].state == GenState.Pending) revert ParentNotReady();
+        if (_children[parentB].state == GenState.Pending) revert ParentNotReady();
 
         // burnすると読めなくなるので、属性は先に確定させる。
         // ブロックで囲って一時変数を早く捨てないとスタックが溢れる。

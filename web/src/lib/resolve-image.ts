@@ -1,5 +1,6 @@
 import { readTokenUri } from "./chain";
-import { keys } from "./keys";
+import { GENESIS_SUPPLY } from "./config";
+import { imageKeyOf, keys } from "./keys";
 import { exists, publicUrl } from "./r2";
 
 /// tokenId から表示用の画像URLを引く。
@@ -13,6 +14,14 @@ export async function resolveImageUrl(tokenId: bigint, preferSnapshot = false): 
     } catch {
       // fall through
     }
+  }
+
+  // burnされた親は tokenURI が revert するので、先にキー規約で引く
+  try {
+    const key = imageKeyOf(tokenId, GENESIS_SUPPLY);
+    if (await exists(key)) return publicUrl(key);
+  } catch {
+    // fall through
   }
 
   const tokenUri = await readTokenUri(tokenId).catch(() => "");

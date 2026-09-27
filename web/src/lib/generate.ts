@@ -1,8 +1,9 @@
 import { readChildInfo, readTokenUri, finalizeMetadata, type ChildInfo } from "./chain";
-import { keys } from "./keys";
+import { imageKeyOf, keys } from "./keys";
 import { generateFusedImage } from "./openai";
 import { buildChildPrompt } from "./prompt";
 import { exists, getBuffer, put, publicUrl, putJson } from "./r2";
+import { GENESIS_SUPPLY } from "./config";
 import { claimLock, loadState, MAX_ATTEMPTS, saveState, type RequestState } from "./state";
 
 export type GenerateResult =
@@ -100,27 +101,25 @@ async function ensureMetadata(tokenId: bigint, info: ChildInfo, imageUrl: string
   return putJson(keys.childMetadata(tokenId), metadata);
 }
 
-/// 親画像をR2にスナップショットしておく。Remintは必ずここから読むので、
-/// 何度焼き直しても同じ2枚が素材になる。
+/// 親画像をR2から引く。
+///
+/// **チェーンは読まない。** v2では3回使い切った親が配合と同じtxでburnされるため、
+/// tokenURI(親) を読む方式だと生成のたびに失敗する。tokenId から決まるキーで直接取る。
+///
+/// スナップショットを別に持つのは、親がburnされた後も同じ2枚で焼き直せるようにするため。
 async function snapshotParent(parentTokenId: bigint): Promise<Buffer> {
-  const key = keys.parentSnapshot(parentTokenId);
-  const cachedImage = await getBuffer(key);
-  if (cachedImage) return cachedImage;
+  const snapshotKey = keys.parentSnapshot(parentTokenId);
+  const cached = await getBuffer(snapshotKey);
+  if (cached) return cached;
 
-  const tokenUri = await readTokenUri(parentTokenId);
-  if (!tokenUri) throw new Error(`parent #${parentTokenId} has no tokenURI yet`);
+  const sourceKey = imageKeyOf(parentTokenId, GENESIS_SUPPLY);
+  const source = await getBuffer(sourceKey);
+  if (!source) {
+    throw new Error(`parent #${parentTokenId} has no image at ${sourceKey}`);
+  }
 
-  const metaRes = await fetch(tokenUri);
-  if (!metaRes.ok) throw new Error(`failed to fetch parent metadata: ${tokenUri}`);
-  const meta = (await metaRes.json()) as { image?: string };
-  if (!meta.image) throw new Error(`parent #${parentTokenId} metadata has no image`);
-
-  const imgRes = await fetch(meta.image);
-  if (!imgRes.ok) throw new Error(`failed to fetch parent image: ${meta.image}`);
-  const buf = Buffer.from(await imgRes.arrayBuffer());
-
-  await put(key, buf, "image/png");
-  return buf;
+  await put(snapshotKey, source, "image/png");
+  return source;
 }
 
 /// 画面のポーリング用。生成は起動しない。
