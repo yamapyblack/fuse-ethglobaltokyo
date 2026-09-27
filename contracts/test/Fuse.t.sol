@@ -6,11 +6,9 @@ import {IERC721Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.s
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Fuse} from "../src/Fuse.sol";
 import {FuseNFT} from "../src/FuseNFT.sol";
-import {FusePool} from "../src/FusePool.sol";
 
 contract FuseTest is Test {
     FuseNFT nft;
-    FusePool pool;
     Fuse fuse;
 
     address owner = makeAddr("owner");
@@ -18,31 +16,32 @@ contract FuseTest is Test {
     address alice = makeAddr("alice");
     address bob = makeAddr("bob");
 
-    uint256 constant FEE = 0.001 ether;
+    uint256 constant PRICE = 0.1 ether;
+    uint256 constant FEE = 0.005 ether;
 
     function setUp() public {
         vm.startPrank(owner);
-        nft = new FuseNFT(owner);
-        pool = new FusePool();
-        fuse = new Fuse(nft, pool, backend, owner);
+        nft = new FuseNFT(owner, "https://cdn.example/genesis/", owner, 500);
+        fuse = new Fuse(nft, backend, owner);
         nft.setFuseContract(address(fuse));
-        // 初期素材6体をaliceへ
-        for (uint256 i; i < 6; ++i) {
-            nft.mintMaterial(alice, string.concat("https://cdn.example/material/", vm.toString(i + 1), ".json"));
-        }
+        fuse.setSaleOpen(true);
+        // family: 全tokenをCreature(0)にしておき、必要なテストで個別に上書きする
         vm.stopPrank();
-        vm.deal(alice, 1 ether);
-        vm.deal(bob, 1 ether);
+
+        vm.deal(alice, 100 ether);
+        vm.deal(bob, 100 ether);
     }
 
     // --- helpers ---
 
-    function _fuse(address who, uint256 a, uint256 b) internal returns (uint256 childId, uint256 requestId) {
-        vm.startPrank(who);
-        nft.approve(address(fuse), a);
-        nft.approve(address(fuse), b);
-        (childId, requestId) = fuse.fuse{value: FEE}(a, b);
-        vm.stopPrank();
+    function _mint(address to, uint256 qty) internal {
+        vm.prank(to);
+        fuse.mintGenesis{value: PRICE * qty}(qty);
+    }
+
+    function _fuse(address who, uint256 a, uint256 b) internal returns (uint256 child, uint256 req) {
+        vm.prank(who);
+        (child, req) = fuse.fuse{value: FEE}(a, b);
     }
 
     function _finalize(uint256 tokenId, string memory uri) internal {
@@ -50,309 +49,311 @@ contract FuseTest is Test {
         fuse.finalizeMetadata(tokenId, uri);
     }
 
-    // --- ① 選択・承認 / ② 初回Fuse ---
-
-    function test_fuse_locksParentsAndMintsChild() public {
-        (uint256 childId, uint256 requestId) = _fuse(alice, 1, 2);
-
-        assertEq(nft.ownerOf(1), address(pool), "parentA locked");
-        assertEq(nft.ownerOf(2), address(pool), "parentB locked");
-        assertEq(nft.ownerOf(childId), alice, "child owned by caller");
-        assertEq(childId, 7, "child follows the 6 materials");
-        assertEq(requestId, 1);
-        assertEq(fuse.tokenIdOfRequest(requestId), childId);
-        assertEq(address(fuse).balance, FEE);
-
-        Fuse.ChildInfo memory info = fuse.childInfo(childId);
-        assertEq(info.parentCollection, address(nft));
-        assertEq(info.parentA, 1);
-        assertEq(info.parentB, 2);
-        assertEq(info.requestId, requestId);
-        assertEq(info.prevChildTokenId, 0);
-        assertEq(info.remintCount, 0);
-        assertTrue(info.state == Fuse.GenState.Pending, "pending until metadata is set");
-        assertTrue(info.seed != 0, "seed derived from block info + requestId");
+    /// wordIndexにfamilyを2bitずつ詰める
+    function _setFamily(uint256 tokenId, Fuse.Family f) internal {
+        uint256 index = tokenId - 1;
+        uint256 wordIndex = index / 128;
+        uint256 shift = (index % 128) * 2;
+        vm.prank(owner);
+        fuse.setGenesisFamilies(wordIndex, uint256(f) << shift);
     }
 
-    function test_fuse_childHasNoTokenUriWhilePending() public {
-        (uint256 childId,) = _fuse(alice, 1, 2);
-        assertEq(nft.tokenURI(childId), "");
+    // --- Genesis 販売 ---
+
+    function test_mintGenesis() public {
+        _mint(alice, 3);
+        assertEq(nft.balanceOf(alice), 3);
+        assertEq(nft.ownerOf(1), alice);
+        assertEq(address(fuse).balance, PRICE * 3);
+        assertEq(nft.tokenURI(1), "https://cdn.example/genesis/1.json");
+    }
+
+    function test_mintGenesis_revertsOnWrongPayment() public {
+        vm.prank(alice);
+        vm.expectRevert(Fuse.IncorrectPayment.selector);
+        fuse.mintGenesis{value: PRICE}(2);
+    }
+
+    function test_mintGenesis_revertsWhenClosed() public {
+        vm.prank(owner);
+        fuse.setSaleOpen(false);
+        vm.prank(alice);
+        vm.expectRevert(Fuse.SaleClosed.selector);
+        fuse.mintGenesis{value: PRICE}(1);
+    }
+
+    function test_mintGenesis_quantityLimits() public {
+        vm.startPrank(alice);
+        vm.expectRevert(Fuse.InvalidQuantity.selector);
+        fuse.mintGenesis{value: 0}(0);
+        vm.expectRevert(Fuse.InvalidQuantity.selector);
+        fuse.mintGenesis{value: PRICE * 11}(11);
+        vm.stopPrank();
+    }
+
+    /// Genesisのumamiは全体で同じ。販売時点で数値の当たり外れを作らない
+    function test_genesisUmamiIsFlat() public {
+        _mint(alice, 10);
+        for (uint256 i = 1; i <= 10; ++i) {
+            assertEq(fuse.umamiOf(i), 50, "genesis umami must be 50");
+            assertEq(fuse.generationOf(i), 0);
+        }
+    }
+
+    // --- 配合 ---
+
+    function test_fuse_needsNoApproval() public {
+        _mint(alice, 2);
+        // approve も setApprovalForAll も呼ばずに通ること
+        (uint256 child,) = _fuse(alice, 1, 2);
+        assertEq(nft.ownerOf(child), alice);
+        assertGt(child, nft.GENESIS_SUPPLY());
+    }
+
+    function test_fuse_consumesChargesWithoutTransfer() public {
+        _mint(alice, 2);
+        _fuse(alice, 1, 2);
+
+        // 親は移動していない。所有者のまま
+        assertEq(nft.ownerOf(1), alice);
+        assertEq(nft.ownerOf(2), alice);
+        assertEq(fuse.chargesLeft(1), 2);
+        assertEq(fuse.chargesLeft(2), 2);
+    }
+
+    /// 3回目の配合で親が消える
+    function test_fuse_burnsParentOnThirdUse() public {
+        _mint(alice, 4);
+        _fuse(alice, 1, 2);
+        _fuse(alice, 1, 3);
+        assertEq(fuse.chargesLeft(1), 1);
+        assertEq(nft.ownerOf(1), alice);
+
+        _fuse(alice, 1, 4);
+        assertEq(fuse.chargesLeft(1), 0);
+        vm.expectRevert(abi.encodeWithSelector(IERC721Errors.ERC721NonexistentToken.selector, uint256(1)));
+        nft.ownerOf(1);
+    }
+
+    function test_fuse_revertsWhenNoChargesLeft() public {
+        _mint(alice, 4);
+        _fuse(alice, 1, 2);
+        _fuse(alice, 1, 3);
+        _fuse(alice, 1, 4);
+        // #1 は焼かれているので所有者チェックで落ちる
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(IERC721Errors.ERC721NonexistentToken.selector, uint256(1)));
+        fuse.fuse{value: FEE}(1, 2);
     }
 
     function test_fuse_revertsOnWrongFee() public {
-        vm.startPrank(alice);
-        nft.approve(address(fuse), 1);
-        nft.approve(address(fuse), 2);
-        vm.expectRevert(Fuse.IncorrectFee.selector);
-        fuse.fuse{value: FEE - 1}(1, 2);
-        vm.expectRevert(Fuse.IncorrectFee.selector);
-        fuse.fuse{value: FEE + 1}(1, 2);
-        vm.stopPrank();
+        _mint(alice, 2);
+        vm.prank(alice);
+        vm.expectRevert(Fuse.IncorrectPayment.selector);
+        fuse.fuse{value: 0.001 ether}(1, 2);
     }
 
-    function test_fuse_revertsOnSameParentTwice() public {
-        vm.startPrank(alice);
-        nft.approve(address(fuse), 1);
+    function test_fuse_revertsOnSameParent() public {
+        _mint(alice, 2);
+        vm.prank(alice);
         vm.expectRevert(Fuse.SameParent.selector);
         fuse.fuse{value: FEE}(1, 1);
-        vm.stopPrank();
     }
 
-    function test_fuse_revertsWhenCallerDoesNotOwnParent() public {
+    function test_fuse_revertsForNonOwner() public {
+        _mint(alice, 2);
         vm.prank(bob);
-        vm.expectRevert(Fuse.NotParentOwner.selector);
+        vm.expectRevert(Fuse.NotOwner.selector);
         fuse.fuse{value: FEE}(1, 2);
     }
 
-    /// 画面は setApprovalForAll を使う。個別approveでなくても配合できること
-    function test_fuse_worksWithOperatorApproval() public {
-        vm.startPrank(alice);
-        nft.setApprovalForAll(address(fuse), true);
-        (uint256 childId,) = fuse.fuse{value: FEE}(1, 2);
-        vm.stopPrank();
-
-        assertEq(nft.ownerOf(1), address(pool));
-        assertEq(nft.ownerOf(2), address(pool));
-        assertEq(nft.ownerOf(childId), alice);
-
-        // 一度承認すれば2回目以降は承認なしで配合できる
-        vm.prank(alice);
-        (uint256 second,) = fuse.fuse{value: FEE}(3, 4);
-        assertEq(nft.ownerOf(second), alice);
-        assertEq(nft.balanceOf(address(pool)), 4);
-    }
-
-    function test_fuse_revertsWithoutApproval() public {
-        vm.prank(alice);
-        vm.expectRevert(
-            abi.encodeWithSelector(IERC721Errors.ERC721InsufficientApproval.selector, address(fuse), uint256(1))
-        );
-        fuse.fuse{value: FEE}(1, 2);
-    }
-
-    /// 親はプールに入ったら誰も動かせない（出庫機能が無いため）
-    function test_pool_cannotReleaseParents() public {
-        _fuse(alice, 1, 2);
-        vm.prank(alice);
-        vm.expectRevert(
-            abi.encodeWithSelector(IERC721Errors.ERC721InsufficientApproval.selector, alice, uint256(1))
-        );
-        nft.transferFrom(address(pool), alice, 1);
-    }
-
-    // --- ③ 画像生成・反映 ---
-
-    function test_finalizeMetadata_setsUriAndReadyState() public {
-        (uint256 childId, uint256 requestId) = _fuse(alice, 1, 2);
-        string memory uri = "https://cdn.example/child/7.json";
-
-        vm.expectEmit(true, true, false, true, address(fuse));
-        emit Fuse.MetadataFinalized(requestId, childId, uri);
-        _finalize(childId, uri);
-
-        assertEq(nft.tokenURI(childId), uri);
-        assertTrue(fuse.childInfo(childId).state == Fuse.GenState.Ready);
-    }
-
-    function test_finalizeMetadata_onlyBackend() public {
-        (uint256 childId,) = _fuse(alice, 1, 2);
-        vm.prank(alice);
-        vm.expectRevert(Fuse.NotMetadataSigner.selector);
-        fuse.finalizeMetadata(childId, "https://cdn.example/evil.json");
-    }
-
-    /// 完成後のメタデータは再設定不可
-    function test_finalizeMetadata_cannotOverwrite() public {
-        (uint256 childId,) = _fuse(alice, 1, 2);
-        _finalize(childId, "https://cdn.example/child/7.json");
-
-        vm.prank(backend);
-        vm.expectRevert(Fuse.NotPending.selector);
-        fuse.finalizeMetadata(childId, "https://cdn.example/child/7-v2.json");
-    }
-
-    /// 生成失敗 → 同じrequestIdのまま、追加課金も再mintもなく再試行できる
-    function test_failedGeneration_retriesWithSameRequestId() public {
-        (uint256 childId, uint256 requestId) = _fuse(alice, 1, 2);
-        uint256 supplyBefore = nft.totalSupply();
-
-        // 1回目の生成が落ちてバックエンドが何も呼ばなかった状態
-        assertTrue(fuse.childInfo(childId).state == Fuse.GenState.Pending);
-        assertEq(fuse.tokenIdOfRequest(requestId), childId);
-
-        _finalize(childId, "https://cdn.example/child/7.json");
-
-        assertEq(nft.totalSupply(), supplyBefore, "no extra mint on retry");
-        assertEq(address(fuse).balance, FEE, "no extra charge on retry");
-        assertEq(fuse.childInfo(childId).requestId, requestId, "requestId unchanged");
-    }
-
-    // --- ⑤ Remint ---
-
-    function test_remint_burnsOldMintsNewAndKeepsParents() public {
-        (uint256 childId,) = _fuse(alice, 1, 2);
-        _finalize(childId, "https://cdn.example/child/7.json");
-
-        vm.prank(alice);
-        (uint256 newChildId, uint256 newRequestId) = fuse.remint{value: FEE}(childId);
-
-        vm.expectRevert(abi.encodeWithSelector(IERC721Errors.ERC721NonexistentToken.selector, childId));
-        nft.ownerOf(childId);
-        assertEq(nft.ownerOf(newChildId), alice);
-        assertTrue(newChildId != childId, "new tokenId");
-        assertEq(address(fuse).balance, 2 * FEE, "remint is charged too");
-
-        Fuse.ChildInfo memory info = fuse.childInfo(newChildId);
-        assertEq(info.parentA, 1, "original parents carried over");
-        assertEq(info.parentB, 2);
-        assertEq(info.prevChildTokenId, childId);
-        assertEq(info.remintCount, 1);
-        assertEq(info.requestId, newRequestId);
-        assertTrue(info.state == Fuse.GenState.Pending);
-        assertTrue(fuse.childInfo(childId).state == Fuse.GenState.Burned);
-
-        // 親は再投入されていない = プールの中身は2体のまま
-        assertEq(nft.balanceOf(address(pool)), 2);
-    }
-
-    function test_remint_twiceIncrementsCount() public {
+    function test_fuse_generationIsMaxPlusOne() public {
+        _mint(alice, 4);
         (uint256 c1,) = _fuse(alice, 1, 2);
+        assertEq(fuse.generationOf(c1), 1);
         _finalize(c1, "u1");
-        vm.prank(alice);
-        (uint256 c2,) = fuse.remint{value: FEE}(c1);
-        _finalize(c2, "u2");
-        vm.prank(alice);
-        (uint256 c3,) = fuse.remint{value: FEE}(c2);
 
-        Fuse.ChildInfo memory info = fuse.childInfo(c3);
-        assertEq(info.remintCount, 2);
-        assertEq(info.prevChildTokenId, c2);
+        (uint256 c2,) = _fuse(alice, c1, 3);
+        assertEq(fuse.generationOf(c2), 2, "max(1,0)+1");
+        _finalize(c2, "u2");
+
+        (uint256 c3,) = _fuse(alice, c2, 4);
+        assertEq(fuse.generationOf(c3), 3);
+    }
+
+    function test_fuse_familyIsAveraged() public {
+        _mint(alice, 2);
+        _setFamily(2, Fuse.Family.Sushi);
+
+        (uint256 child,) = _fuse(alice, 1, 2);
+        (uint16 c, uint16 s, uint16 e) = fuse.familyBpsOf(child);
+        assertEq(c, 5000, "creature 50%");
+        assertEq(s, 5000, "sushi 50%");
+        assertEq(e, 0);
+        assertEq(c + s + e, 10000, "bps must sum to 10000");
+    }
+
+    /// 子のumamiは1-100の範囲で、親からは継承しない
+    function test_childUmamiIsInRangeAndNotInherited() public {
+        _mint(alice, 10); // 1txの上限は10体
+
+        bool sawDifferent;
+        for (uint256 i = 1; i <= 9; i += 2) {
+            (uint256 child,) = _fuse(alice, i, i + 1);
+            uint8 u = fuse.umamiOf(child);
+            assertGe(u, 1);
+            assertLe(u, 100);
+            if (u != 50) sawDifferent = true;
+            _finalize(child, "u");
+        }
+        assertTrue(sawDifferent, "children do not converge on the parents value");
+    }
+
+    // --- Remint ---
+
+    function test_remint_isFree() public {
+        _mint(alice, 2);
+        (uint256 child,) = _fuse(alice, 1, 2);
+        _finalize(child, "u1");
+
+        uint256 before = alice.balance;
+        vm.prank(alice);
+        (uint256 newId,) = fuse.remint(child);
+        assertEq(alice.balance, before, "no payment beyond gas");
+        assertEq(nft.ownerOf(newId), alice);
+    }
+
+    function test_remint_revertsIfPaid() public {
+        _mint(alice, 2);
+        (uint256 child,) = _fuse(alice, 1, 2);
+        _finalize(child, "u1");
+        vm.prank(alice);
+        vm.expectRevert(Fuse.IncorrectPayment.selector);
+        fuse.remint{value: FEE}(child);
+    }
+
+    /// Remintで配合回数がリセットされない。されると無料で繁殖力を回復できてしまう
+    function test_remint_carriesFuseCharges() public {
+        _mint(alice, 4);
+        (uint256 child,) = _fuse(alice, 1, 2);
+        _finalize(child, "u1");
+
+        _fuse(alice, child, 3);
+        assertEq(fuse.chargesLeft(child), 2);
+
+        vm.prank(alice);
+        (uint256 newId,) = fuse.remint(child);
+        assertEq(fuse.chargesLeft(newId), 2, "carries the used charges");
+    }
+
+    function test_remint_carriesLineage() public {
+        _mint(alice, 4);
+        _setFamily(2, Fuse.Family.Sushi);
+        (uint256 child,) = _fuse(alice, 1, 2);
+        _finalize(child, "u1");
+
+        vm.prank(alice);
+        (uint256 newId,) = fuse.remint(child);
+
+        Fuse.Child memory info = fuse.childInfo(newId);
         assertEq(info.parentA, 1);
         assertEq(info.parentB, 2);
+        assertEq(info.prevTokenId, child);
+        assertEq(info.remintCount, 1);
+        assertEq(fuse.generationOf(newId), 1);
+        (uint16 c, uint16 s,) = fuse.familyBpsOf(newId);
+        assertEq(c, 5000);
+        assertEq(s, 5000);
+        assertTrue(fuse.childInfo(child).state == Fuse.GenState.Burned);
     }
 
-    /// Remintは3回まで。使い切ったらその子で確定する
-    function test_remint_stopsAtMaxRemints() public {
+    function test_remint_stopsAtMax() public {
+        _mint(alice, 2);
         (uint256 child,) = _fuse(alice, 1, 2);
         _finalize(child, "u0");
 
-        for (uint32 i = 1; i <= fuse.MAX_REMINTS(); ++i) {
+        for (uint8 i = 1; i <= fuse.MAX_REMINTS(); ++i) {
             vm.prank(alice);
-            (uint256 next,) = fuse.remint{value: FEE}(child);
+            (uint256 next,) = fuse.remint(child);
             _finalize(next, "u");
             assertEq(fuse.childInfo(next).remintCount, i);
             child = next;
         }
-
         vm.prank(alice);
         vm.expectRevert(Fuse.RemintLimitReached.selector);
-        fuse.remint{value: FEE}(child);
+        fuse.remint(child);
+    }
 
-        // 上限に達しても子NFT自体は健在
-        assertEq(nft.ownerOf(child), alice);
+    function test_remint_revertsWhilePending() public {
+        _mint(alice, 2);
+        (uint256 child,) = _fuse(alice, 1, 2);
+        vm.prank(alice);
+        vm.expectRevert(Fuse.GenerationInProgress.selector);
+        fuse.remint(child);
+    }
+
+    function test_remint_revertsForGenesis() public {
+        _mint(alice, 1);
+        vm.prank(alice);
+        vm.expectRevert(Fuse.NotChild.selector);
+        fuse.remint(1);
+    }
+
+    // --- メタデータ ---
+
+    function test_finalizeMetadata() public {
+        _mint(alice, 2);
+        (uint256 child,) = _fuse(alice, 1, 2);
+        _finalize(child, "https://cdn.example/child/1001.json");
+        assertEq(nft.tokenURI(child), "https://cdn.example/child/1001.json");
         assertTrue(fuse.childInfo(child).state == Fuse.GenState.Ready);
     }
 
-    /// 生成中はRemint不可
-    function test_remint_revertsWhilePending() public {
-        (uint256 childId,) = _fuse(alice, 1, 2);
+    function test_finalizeMetadata_onlyBackend() public {
+        _mint(alice, 2);
+        (uint256 child,) = _fuse(alice, 1, 2);
         vm.prank(alice);
-        vm.expectRevert(Fuse.GenerationInProgress.selector);
-        fuse.remint{value: FEE}(childId);
+        vm.expectRevert(Fuse.NotMetadataSigner.selector);
+        fuse.finalizeMetadata(child, "evil");
     }
 
-    /// 子NFTのみRemint可能。初期素材は不可
-    function test_remint_revertsForMaterial() public {
-        vm.prank(alice);
-        vm.expectRevert(Fuse.NotChild.selector);
-        fuse.remint{value: FEE}(1);
-    }
-
-    function test_remint_revertsForNonOwner() public {
-        (uint256 childId,) = _fuse(alice, 1, 2);
-        _finalize(childId, "u1");
-        vm.prank(bob);
-        vm.expectRevert(Fuse.NotChildOwner.selector);
-        fuse.remint{value: FEE}(childId);
-    }
-
-    function test_remint_revertsOnWrongFee() public {
-        (uint256 childId,) = _fuse(alice, 1, 2);
-        _finalize(childId, "u1");
-        vm.prank(alice);
-        vm.expectRevert(Fuse.IncorrectFee.selector);
-        fuse.remint{value: 0}(childId);
-    }
-
-    function test_remint_revertsForAlreadyBurnedChild() public {
-        (uint256 childId,) = _fuse(alice, 1, 2);
-        _finalize(childId, "u1");
-        vm.prank(alice);
-        fuse.remint{value: FEE}(childId);
-        vm.prank(alice);
-        vm.expectRevert(Fuse.AlreadyBurned.selector);
-        fuse.remint{value: FEE}(childId);
-    }
-
-    /// 子を素材に使うとプール所有になり、Remint権は所有者チェックで自然に消える
-    function test_childUsedAsParent_losesRemintRight() public {
-        (uint256 childId,) = _fuse(alice, 1, 2);
-        _finalize(childId, "u1");
-
-        (uint256 grandChildId,) = _fuse(alice, childId, 3);
-        assertEq(nft.ownerOf(childId), address(pool));
-        assertEq(fuse.childInfo(grandChildId).parentA, childId);
-
-        vm.prank(alice);
-        vm.expectRevert(Fuse.NotChildOwner.selector);
-        fuse.remint{value: FEE}(childId);
+    function test_finalizeMetadata_cannotOverwrite() public {
+        _mint(alice, 2);
+        (uint256 child,) = _fuse(alice, 1, 2);
+        _finalize(child, "u1");
+        vm.prank(backend);
+        vm.expectRevert(Fuse.NotPending.selector);
+        fuse.finalizeMetadata(child, "u2");
     }
 
     // --- 運用 ---
 
-    function test_withdrawFees() public {
-        _fuse(alice, 1, 2);
+    function test_withdraw() public {
+        _mint(alice, 2);
         vm.prank(owner);
-        fuse.withdrawFees(owner);
-        assertEq(owner.balance, FEE);
-        assertEq(address(fuse).balance, 0);
+        fuse.withdraw(owner);
+        assertEq(owner.balance, PRICE * 2);
     }
 
-    function test_withdrawFees_onlyOwner() public {
-        _fuse(alice, 1, 2);
+    function test_withdraw_onlyOwner() public {
+        _mint(alice, 1);
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
-        fuse.withdrawFees(alice);
+        fuse.withdraw(alice);
     }
 
-    function test_nft_mintAndBurnRestrictedToFuseContract() public {
-        vm.prank(alice);
+    function test_royaltyIs5Percent() public view {
+        (address receiver, uint256 amount) = nft.royaltyInfo(1, 1 ether);
+        assertEq(receiver, owner);
+        assertEq(amount, 0.05 ether);
+    }
+
+    function test_nft_mintAndBurnRestrictedToFuse() public {
+        vm.startPrank(alice);
         vm.expectRevert(FuseNFT.NotFuseContract.selector);
         nft.mintChild(alice);
-
-        vm.prank(alice);
         vm.expectRevert(FuseNFT.NotFuseContract.selector);
-        nft.burnChild(1);
-
-        vm.prank(alice);
-        vm.expectRevert(FuseNFT.NotFuseContract.selector);
-        nft.setChildTokenURI(1, "x");
-    }
-
-    function test_nft_fuseContractCannotBeReplaced() public {
-        vm.prank(owner);
-        vm.expectRevert(FuseNFT.FuseContractAlreadySet.selector);
-        nft.setFuseContract(makeAddr("attacker"));
-    }
-
-    function test_tokensOfOwner() public {
-        uint256[] memory ids = nft.tokensOfOwner(alice);
-        assertEq(ids.length, 6);
-        assertEq(ids[0], 1);
-        assertEq(ids[5], 6);
-
-        _fuse(alice, 1, 2);
-        ids = nft.tokensOfOwner(alice);
-        assertEq(ids.length, 5, "2 parents left, 1 child arrived");
+        nft.burn(1);
+        vm.stopPrank();
     }
 }
