@@ -356,4 +356,40 @@ contract FuseTest is Test {
         nft.burn(1);
         vm.stopPrank();
     }
+
+    // --- 属性とトレイト ---
+
+    function test_attributesOf_worksForBoth() public {
+        _mint(alice, 2);
+        Fuse.Attributes memory g = fuse.attributesOf(1);
+        assertEq(g.generation, 0);
+        assertEq(g.umami, 50);
+        assertEq(g.creatureBps + g.sushiBps + g.engimonoBps, 10000);
+
+        (uint256 child,) = _fuse(alice, 1, 2);
+        Fuse.Attributes memory c = fuse.attributesOf(child);
+        assertEq(c.generation, 1);
+        assertGe(c.umami, 1);
+        assertLe(c.umami, 100);
+    }
+
+    /// Genesisの見た目は事前生成の画像が正。偽のseedから値を作って返さない
+    function test_traitsOf_revertsForGenesis() public {
+        _mint(alice, 1);
+        vm.expectRevert(Fuse.GenesisTraitsAreOffchain.selector);
+        fuse.traitsOf(1);
+    }
+
+    function test_traitsOf_inRange() public {
+        _mint(alice, 10);
+        for (uint256 i = 1; i <= 9; i += 2) {
+            (uint256 child,) = _fuse(alice, i, i + 1);
+            Fuse.Traits memory t = fuse.traitsOf(child);
+            assertLt(t.mood, 5);
+            assertLt(t.accent, 6);
+            assertLt(t.charm, 8);
+            assertLt(t.pose, 5);
+            _finalize(child, "u");
+        }
+    }
 }

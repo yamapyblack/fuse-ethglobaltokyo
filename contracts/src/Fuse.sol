@@ -50,14 +50,19 @@ contract Fuse is Ownable, ReentrancyGuard {
         uint256 seed;
     }
 
-    /// @notice 表示用にまとめたもの。GenesisでもChildでも引ける。
+    /// @notice オンチェーンで真である属性。GenesisでもChildでも引ける。
     struct Attributes {
         uint8 generation;
         uint8 umami;
         uint16 creatureBps;
         uint16 sushiBps;
         uint16 engimonoBps;
-        uint8 palate;
+    }
+
+    /// @notice 見た目のトレイト。seedから導出するので子だけが持つ。
+    /// @dev Genesisの見た目は事前生成した画像で決まっており、チェーン上には無い。
+    ///      偽のseedをでっち上げて返すとメタデータと絵が食い違うので、Genesisでは revert する。
+    struct Traits {
         uint8 mood;
         uint8 accent;
         uint8 charm;
@@ -93,6 +98,7 @@ contract Fuse is Ownable, ReentrancyGuard {
     error NotPending();
     error ZeroAddress();
     error WithdrawFailed();
+    error GenesisTraitsAreOffchain();
 
     event GenesisMinted(address indexed to, uint256 indexed tokenId);
     event FuseRequested(
@@ -280,17 +286,21 @@ contract Fuse is Ownable, ReentrancyGuard {
         engimono = 10000 - creature - sushi;
     }
 
-    /// @notice 表示用の属性。カテゴリ値はすべて均等確率で、優劣はない。
     function attributesOf(uint256 tokenId) external view returns (Attributes memory a) {
         (a.creatureBps, a.sushiBps, a.engimonoBps) = familyBpsOf(tokenId);
         a.generation = generationOf(tokenId);
         a.umami = umamiOf(tokenId);
-        uint256 s = tokenId <= nft.GENESIS_SUPPLY() ? uint256(keccak256(abi.encodePacked(tokenId))) : _children[tokenId].seed;
-        a.palate = uint8((s >> 16) % 4);
-        a.mood = uint8((s >> 32) % 5);
-        a.accent = uint8((s >> 48) % 6);
-        a.charm = uint8((s >> 64) % 8);
-        a.pose = uint8((s >> 80) % 5);
+    }
+
+    /// @notice 子の見た目トレイト。すべて均等確率で、優劣はない。
+    /// @dev Genesisは事前生成した画像が正なので、ここでは返さない。
+    function traitsOf(uint256 tokenId) external view returns (Traits memory t) {
+        if (tokenId <= nft.GENESIS_SUPPLY()) revert GenesisTraitsAreOffchain();
+        uint256 s = _children[tokenId].seed;
+        t.mood = uint8((s >> 16) % 5);
+        t.accent = uint8((s >> 32) % 6);
+        t.charm = uint8((s >> 48) % 8);
+        t.pose = uint8((s >> 64) % 5);
     }
 
     function childInfo(uint256 tokenId) external view returns (Child memory) {
