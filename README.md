@@ -7,7 +7,14 @@ An NFT gacha: lock two away for good, an AI fuses them into one. Rerolling burns
 - Image generation: OpenAI image edit API (both parent images go in, one fused image comes out)
 - Hosting: Vercel
 
-> **This branch (`v2`) is the version being built for sale, and is not deployed yet.**
+> **This branch (`v2`) is the version being built for sale.** It is deployed on Base Sepolia for
+> testing; mainnet is not live yet.
+>
+> | Contract | Base Sepolia |
+> | --- | --- |
+> | FuseNFT | [`0x510e60e7323CB3F4b464F92b690094f000357F46`](https://sepolia.basescan.org/address/0x510e60e7323CB3F4b464F92b690094f000357F46) |
+> | Fuse | [`0x76AB90586Ed8294d8cB913Fab41dc7237335700a`](https://sepolia.basescan.org/address/0x76AB90586Ed8294d8cB913Fab41dc7237335700a) |
+>
 > The ETHGlobal Tokyo hackathon version is on `main`, tagged `hackathon-submission`.
 > It used a different model (parents locked in a pool, 0.001 ETH, 26 starter pieces) and is still
 > live on Base Sepolia.
